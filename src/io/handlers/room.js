@@ -1,3 +1,11 @@
-const IOEvents = require("./../events");
+import IOEvents from "./../events.js";
 
-module.exports = {};
+import { nanoid } from "nanoid";
+
+function create(socket) {
+    return () => {
+        socket.emit(IOEvents.ROOM_JOIN, nanoid());
+    };
+}
+
+export { create };

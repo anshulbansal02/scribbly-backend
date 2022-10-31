@@ -1,3 +1,3 @@
-const IOEvents = require("./../events");
+import IOEvents from "./../events.js";
 
-module.exports = {};
+export {};

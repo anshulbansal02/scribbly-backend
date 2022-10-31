@@ -1,13 +1,14 @@
-const { createServer } = require("http");
-const express = require("express");
-const helmet = require("helmet");
-const cors = require("cors");
-const morgan = require("morgan");
-const { Server: SocketServer } = require("socket.io");
+import { createServer } from "http";
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import { Server as SocketServer } from "socket.io";
 
-const registerSocketHandlers = require("./io/index");
+import registerSocketHandlers from "./io/index.js";
 
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config({ silent: process.env.NODE_ENV === "production" });
 
 const app = express();
 

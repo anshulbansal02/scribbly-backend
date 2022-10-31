@@ -1,4 +1,4 @@
-const IOEvents = require("./../events");
+import IOEvents from "./../events.js";
 
 function message(socket) {
     return ({ text }) => {
@@ -6,4 +6,4 @@ function message(socket) {
     };
 }
 
-module.exports = { message };
+export { message };

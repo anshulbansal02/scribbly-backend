@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "scribbly backend",
     "main": "index.js",
+    "type": "module",
     "author": "Anshul Bansal <55446476+anshulbansal02@users.noreply.github.com>",
     "license": "MIT",
     "scripts": {

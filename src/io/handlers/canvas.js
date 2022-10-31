@@ -1,4 +1,4 @@
-const IOEvents = require("./../events");
+import IOEvents from "./../events.js";
 
 function beginDraw(socket) {
     return ({ point }) => {
@@ -24,4 +24,4 @@ function clear(socket) {
     };
 }
 
-module.exports = { beginDraw, draw, fill, clear };
+export { beginDraw, draw, fill, clear };

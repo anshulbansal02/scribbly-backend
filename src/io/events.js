@@ -26,4 +26,4 @@ const Events = {
     CHAT_GUESS: "chat:guess", // S
 };
 
-module.exports = Object.freeze(Events);
+export default Object.freeze(Events);
