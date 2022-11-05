@@ -1,11 +1,44 @@
 import IOEvents from "./../events.js";
 
-import { nanoid } from "nanoid";
+import { Room } from "./../../models/index.js";
 
-function create(socket) {
-    return () => {
-        socket.emit(IOEvents.ROOM_JOIN, nanoid());
+function create(player) {
+    return ({ username }) => {
+        player.setUsername(username);
+        const room = Room.create(player);
+
+        player.emitBack(IOEvents.ROOM_JOIN, { room });
     };
 }
 
-export { create };
+function join(player) {
+    return ({ roomId, username }) => {
+        const room = Room.get(roomId);
+        player.setUsername(username);
+        room.add(player);
+
+        player.emitBack(IOEvents.ROOM_JOIN, { room });
+        player.broadcast(IOEvents.ROOM_PLAYER_JOIN, { player });
+    };
+}
+
+function leave(player) {
+    return () => {
+        if (player.room) {
+            player.room.remove(player);
+
+            player.emitBack(IOEvents.ROOM_LEAVE);
+            player.broadcast(IOEvents.ROOM_PLAYER_LEAVE, { player });
+        }
+    };
+}
+
+function settings_change(player) {
+    return ({ settings }) => {
+        player.room.settingsUpdate(settings);
+
+        player.broadcast(IOEvents.GAME_SETTINGS_CHANGE, { settings });
+    };
+}
+
+export { create, join, leave, settings_change };

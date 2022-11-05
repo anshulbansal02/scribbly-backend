@@ -8,7 +8,7 @@ import { Server as SocketServer } from "socket.io";
 import registerSocketHandlers from "./io/index.js";
 
 import dotenv from "dotenv";
-dotenv.config({ silent: process.env.NODE_ENV === "production" });
+dotenv.config();
 
 const app = express();
 

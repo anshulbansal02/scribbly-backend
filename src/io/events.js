@@ -1,6 +1,10 @@
 const Events = {
+    PLAYER_CREATE: "player:create",
+
     ROOM_CREATE: "room:create", // C
-    ROOM_JOIN: "room:join", // C
+    ROOM_JOIN: "room:join", // S,C
+    ROOM_PLAYER_JOIN: "room:player_join", // S
+    ROOM_PLAYER_LEAVE: "room:player_leave", // S
     ROOM_INFO: "room:info", // S
     ROOM_LEAVE: "room:leave", // C
     ROOM_KICK: "room:kick", // S,C
