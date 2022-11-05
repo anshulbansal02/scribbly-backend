@@ -25,10 +25,10 @@ function join(player) {
 function leave(player) {
     return () => {
         if (player.room) {
-            player.room.remove(player);
-
             player.emitBack(IOEvents.ROOM_LEAVE);
             player.broadcast(IOEvents.ROOM_PLAYER_LEAVE, { player });
+
+            player.room.remove(player);
         }
     };
 }
