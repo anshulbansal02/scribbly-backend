@@ -20,7 +20,7 @@ class Room {
     get view() {
         return {
             id: this.id,
-            admin: this.admin.view,
+            adminId: this.admin.id,
             players: this.players.map((player) => player.view),
             settings: this.settings,
         };
@@ -71,7 +71,9 @@ class Room {
             this.players[Math.floor(Math.random() * this.players.length)];
     }
 
-    settingsUpdate(newSettings) {}
+    settingsUpdate(newSettings) {
+        this.settings = { ...this.settings, ...newSettings };
+    }
 }
 
 export default Room;
