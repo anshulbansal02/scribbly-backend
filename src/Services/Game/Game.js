@@ -1,9 +1,4 @@
-import { Phaser } from ".";
-
-const GameDefaults = Object.freeze({
-    WORD_CHOICE_TIMEOUT: 10000,
-    WORD_CHOICES_NUMBER: 3,
-});
+import { Phaser, TurnOrderer, GameDefaults } from ".";
 
 class Game extends EventEmitter {
     constructor(room) {
@@ -11,24 +6,36 @@ class Game extends EventEmitter {
     }
 
     init() {
-        this.phaser = new Phaser();
+        this.preferences = structuredClone(this.room.settings.game);
 
-        this.settings = structuredClone(this.room.settings.game);
+        this.phaser = new Phaser();
+        this.turns = new TurnOrderer(this.room.players);
         this.scoreboard = new Scoreboard();
-        this.wordChoiceList = [];
-        this.currentWord = null;
-        this.currentTurnPlayer = null;
-        this.currentRoundNumber = 1;
+
+        this.turns.randomize();
+
+        this.state = {
+            wordChoices: [],
+            word: null,
+            turnPlayer: null,
+            round: 1,
+        };
+
+        this.room.on("PLAYER_LEAVE", (player) => {
+            if (this.state.turnPlayer.id === player.id) {
+                this.phaser.interrupt(this.endTurn);
+            }
+            this.turns.remove(player);
+        });
+
+        this.room.on("PLAYER_JOIN", (player) => {
+            this.turns.add(player);
+        });
     }
 
     setWord(word) {
-        const wordObj = WordEngine.getWord(word);
-        this.currentWord = wordObj;
+        this.state.word = WordEngine.obfuscate(word);
     }
-
-    getNextTurn() {}
-
-    /*----------------------------------------------------------*/
 
     // Phases
     startGame() {
@@ -55,7 +62,7 @@ class Game extends EventEmitter {
         // Send round stats
 
         this.currentRoundNumber++;
-        if (this.currentRoundNumber <= this.settings.rounds) {
+        if (this.currentRoundNumber <= this.preferences.rounds) {
             return [this.Phase.ROUND_START, 2000];
         } else {
             return [this.Phase.GAME_END, 1000];
@@ -106,16 +113,13 @@ class Game extends EventEmitter {
     startGuess() {
         this.emit("GAME_WORD", { word: this.currentWord });
 
-        return [this.endTurn, this.settings.guessTimeout];
+        return [this.endTurn, this.preferences.guessTimeout];
     }
 
-    // Bootstraps game
-    async start() {
+    start() {
         this.init();
-        this.initPlayersHandlers();
-
         this.phaser.execute(this.startGame);
-
-        // End
     }
 }
+
+export default Game;
