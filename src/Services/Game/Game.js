@@ -1,7 +1,13 @@
-import { Phaser, TurnOrderer, GameDefaults } from ".";
+import EventEmitter from "events";
+
+import { GameDefaults, GameEvents } from "./index.js";
+import Phaser from "./Phaser.js";
+import Scoreboard from "./Scoreboard.js";
+import WordEngine from "./WordEngine.js";
 
 class Game extends EventEmitter {
     constructor(room) {
+        super();
         this.room = room;
     }
 
@@ -89,9 +95,10 @@ class Game extends EventEmitter {
         return [this.startTurn, 1000];
     }
 
-    async startWordChoice() {
-        this.wordChoiceList = await WordEngine.getWordList(
-            GameDefaults.WORD_CHOICES_NUMBER
+    startWordChoice() {
+        this.wordChoiceList = WordEngine.getWords(
+            GameDefaults.WORD_CHOICES_NUMBER,
+            this.preferences.difficulty
         );
 
         this.turnPlayer.emit("GAME_WORDS", { words: this.wordChoiceList });

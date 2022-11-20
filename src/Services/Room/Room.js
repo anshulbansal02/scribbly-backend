@@ -1,9 +1,12 @@
-import { generateRoomId } from "./../utils/index.js";
 import EventEmitter from "events";
-import Game from "./Game";
+
+import { generateRoomId } from "./index.js";
+import Game from "./../Game/Game.js";
+import RoomSettings from "./RoomSettings.js";
 
 class Room extends EventEmitter {
     static #activeRooms = new Map();
+    #joinRequests;
 
     #joinRequestsProcessor = (function () {
         const requests = new Map();
@@ -60,13 +63,17 @@ class Room extends EventEmitter {
         this.admin = admin;
         this.settings = new RoomSettings();
         this.game = new Game(this);
+
+        this.players.set(admin.id, admin);
     }
 
     get view() {
         return {
             id: this.id,
-            adminId: this.admin.id,
-            players: this.players.map((player) => player.view),
+            adminId: this.admin?.id,
+            players: Array.from(this.players.values()).map(
+                (player) => player.view
+            ),
             settings: this.settings,
         };
     }

@@ -4,3 +4,5 @@ class Avatar {
         this.imageUrl = null;
     }
 }
+
+export default Avatar;

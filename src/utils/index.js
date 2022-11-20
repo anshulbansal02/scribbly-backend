@@ -1,13 +1,5 @@
 import { customAlphabet, nanoid } from "nanoid";
 
-function generateRoomId() {
-    return customAlphabet("abcdefghjkmnopqrstuvwxyz", 6)();
-}
-
-function generatePlayerId() {
-    return nanoid(12);
-}
-
 function randomInt(max, min = 0) {
     return Math.floor(Math.random() * max) + min;
 }
@@ -46,4 +38,4 @@ function delay(ms) {
     };
 }
 
-export { generateRoomId, generatePlayerId, viewfy, delay };
+export { viewfy, delay, randomInt, randomItem };

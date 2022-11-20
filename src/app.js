@@ -5,7 +5,6 @@ import cors from "cors";
 import morgan from "morgan";
 import { Server as SocketServer } from "socket.io";
 
-import registerSocketHandlers from "./io/index.js";
 import routes from "./routes.js";
 
 import dotenv from "dotenv";
@@ -23,8 +22,6 @@ app.use("/api", routes);
 
 const httpServer = createServer(app);
 const socketServer = new SocketServer(httpServer, { cors: { origin: "*" } });
-
-registerSocketHandlers(socketServer);
 
 const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT);

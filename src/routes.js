@@ -1,31 +1,44 @@
 import { Router } from "express";
 
-import { Room, Player } from "./models/index.js";
+import { PlayerService, RoomService } from "./services/index.js";
+import { viewfy } from "./utils/index.js";
 
 const router = Router();
 
-router.get("/room/exists/:roomId", (req, res) => {
-    const { roomId } = req.params;
-    res.json({
-        roomId: roomId,
-        exists: Room.exists(roomId),
-    });
+router.post("/player/create", (req, res) => {
+    const player = PlayerService.create("anshul");
+    res.json(viewfy(player));
+});
+
+router.post("/room/create", (req, res) => {
+    const player = PlayerService.create("anshul");
+    const room = RoomService.create(player);
+
+    console.log(room);
+
+    res.json(viewfy(room));
 });
 
 router.post("/room/join", (req, res) => {
-    const { roomId, userId } = req.body;
+    const { playerId, roomId } = req.body;
 
-    const player = Player.get(userId);
-    const room = Room.get(room);
+    // Move to auth middleware
+    const player = PlayerService.get(playerId);
+
+    const room = RoomService.get(roomId);
 
     if (!room) {
         res.json({
-            error: "Room does not exist",
+            error: "Room doesn't exist",
         });
         return;
     }
 
-    room = room.addPlayer(player);
+    room.joinRequest(player);
+
+    res.json({
+        message: "Room join requested.",
+    });
 });
 
 export default router;

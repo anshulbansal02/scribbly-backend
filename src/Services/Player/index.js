@@ -1,3 +1,5 @@
+import { nanoid } from "nanoid";
+
 class PlayerError extends Error {
     constructor(message) {
         super(message);
@@ -5,3 +7,9 @@ class PlayerError extends Error {
         Error.captureStackTrace(this, this.constructor);
     }
 }
+
+function generatePlayerId() {
+    return nanoid(12);
+}
+
+export { PlayerError, generatePlayerId };

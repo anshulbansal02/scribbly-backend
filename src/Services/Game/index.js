@@ -1,76 +1,19 @@
-class Phaser {
-    constructor() {
-        this._interruptPhase = null;
-        this._phaseDelay = null;
-    }
-
-    async execute(initialPhase) {
-        let nextPhase = initialPhase;
-
-        while (nextPhase) {
-            nextPhase = this._interruptPhase ?? nextPhase;
-            this._interruptPhase = null;
-            [nextPhase, nextPhaseDelayTime] = nextPhase();
-            if (nextPhaseDelayTime) {
-                this._phaseDelay = delay(nextPhaseDelayTime);
-                await this._phaseDelay.wait;
-                this._phaseDelay = null;
-            }
-        }
-    }
-
-    interrupt(nextPhase) {
-        if (this._phaseDelay) {
-            this._phaseDelay.cancel();
-        }
-        this.interruptPhase = nextPhase;
-    }
-}
-
-class TurnOrderer {
-    constructor(players, randomize) {
-        this.players = players;
-        this.order = [...this.players.keys()];
-        this.turnIndex = -1;
-    }
-
-    next() {
-        return this.players.get(order[this.turnIndex++]);
-    }
-
-    randomize() {
-        let currentIndex = this.order.length,
-            randomIndex;
-
-        while (currentIndex != 0) {
-            randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-
-            [this.order[currentIndex], this.order[randomIndex]] = [
-                this.order[randomIndex],
-                this.order[currentIndex],
-            ];
-        }
-    }
-
-    reset() {
-        this.turnIndex = -1;
-    }
-
-    add(player) {
-        this.order.push(player.id);
-    }
-
-    remove(player) {
-        const index = array.indexOf(player.id);
-        if (index <= this.turnIndex) this.turnIndex--;
-        this.order.splice(index, 1);
-    }
-}
+const GameEvents = Object.freeze({
+    START: "game:start",
+    END: "game:end",
+    ROUND_START: "game:round:start",
+    ROUND_END: "game:round:end",
+    TURN_START: "game:turn:start",
+    TURN_END: "game:turn:end",
+    WORD_CHOICE_START: "game:word_choice:start",
+    WORD_CHOICE_END: "game:word_choice:end",
+    GUESS_START: "game:guess:start",
+    GUESS_END: "game:guess:end",
+});
 
 const GameDefaults = Object.freeze({
     WORD_CHOICE_TIMEOUT: 10000,
     WORD_CHOICES_NUMBER: 3,
 });
 
-export { Phaser, TurnOrderer, GameDefaults };
+export { GameDefaults, GameEvents };

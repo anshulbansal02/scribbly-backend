@@ -1,7 +1,20 @@
+import { generatePlayerId, viewfy } from "../utils/index.js";
 import EventEmitter from "events";
 
-import { generatePlayerId, PlayerError } from "./index.js";
-import Avatar from "./Avatar.js";
+class Avatar {
+    constructor(seed) {
+        this.accentColor = null;
+        this.imageUrl = null;
+    }
+}
+
+class PlayerError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = this.constructor.name;
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
 
 class Player extends EventEmitter {
     static #playersPool = new Map();
@@ -48,20 +61,6 @@ class Player extends EventEmitter {
 
     updateUsername(username) {
         this.username = username;
-    }
-
-    waitTillEvent(event, timeout, handler) {
-        t = setTimeout(() => {
-            this.off(event, wrappedHandler);
-            handler();
-        }, timeout);
-
-        function wrappedHandler(timeoutRef) {
-            clearTimeout(timeoutRef);
-            handler();
-        }
-
-        this.once(event, wrappedHandler);
     }
 }
 

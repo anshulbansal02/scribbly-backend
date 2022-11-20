@@ -1,2 +1,2 @@
-export { default as Room } from "./Room.js";
-export { default as Player } from "./Player.js";
+export { default as RoomService } from "./Room/Room.js";
+export { default as PlayerService } from "./Player/Player.js";
