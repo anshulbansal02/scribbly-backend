@@ -6,6 +6,7 @@ import morgan from "morgan";
 import { Server as SocketServer } from "socket.io";
 
 import registerSocketHandlers from "./io/index.js";
+import routes from "./routes.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -18,10 +19,12 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 
-const httpServer = createServer(app);
-const io = new SocketServer(httpServer, { cors: { origin: "*" } });
+app.use("/api", routes);
 
-registerSocketHandlers(io);
+const httpServer = createServer(app);
+const socketServer = new SocketServer(httpServer, { cors: { origin: "*" } });
+
+registerSocketHandlers(socketServer);
 
 const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT);

@@ -1,0 +1,3 @@
+class Scoreboard {
+    constructor() {}
+}

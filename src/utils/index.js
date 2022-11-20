@@ -8,6 +8,14 @@ function generatePlayerId() {
     return nanoid(12);
 }
 
+function randomInt(max, min = 0) {
+    return Math.floor(Math.random() * max) + min;
+}
+
+function randomItem(array) {
+    return array[randomInt(array.length)];
+}
+
 function viewfy(data) {
     if (typeof data == "object") {
         if (data.view) {
@@ -20,4 +28,22 @@ function viewfy(data) {
     return data;
 }
 
-export { generateRoomId, generatePlayerId, viewfy };
+function delay(ms) {
+    let _timeoutRef;
+    let _resolveRef;
+
+    const promise = new Promise((resolve) => {
+        _resolveRef = resolve;
+        _timeoutRef = setTimeout(resolve, ms);
+    });
+
+    return {
+        wait: promise,
+        cancel() {
+            clearTimeout(_timeoutRef);
+            _resolveRef();
+        },
+    };
+}
+
+export { generateRoomId, generatePlayerId, viewfy, delay };

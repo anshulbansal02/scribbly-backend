@@ -14,11 +14,15 @@ function create(player) {
 function join(player) {
     return ({ roomId, username }) => {
         const room = Room.get(roomId);
-        player.setUsername(username);
-        room.add(player);
 
-        player.emitBack(IOEvents.ROOM_JOIN, { room });
-        player.broadcast(IOEvents.ROOM_PLAYER_JOIN, { player });
+        if (room) {
+            player.setUsername(username);
+            room.add(player);
+            player.emitBack(IOEvents.ROOM_JOIN, { room });
+            player.broadcast(IOEvents.ROOM_PLAYER_JOIN, { player });
+        } else {
+            player.emitBack(IOEvents.ROOM_NON_EXISTANT);
+        }
     };
 }
 

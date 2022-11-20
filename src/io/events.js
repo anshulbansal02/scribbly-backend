@@ -8,6 +8,7 @@ const Events = {
     ROOM_INFO: "room:info", // S
     ROOM_LEAVE: "room:leave", // C
     ROOM_KICK: "room:kick", // S,C
+    ROOM_NON_EXISTANT: "room:non_existant",
 
     GAME_SETTINGS_CHANGE: "game:settings_change", // S,C
     GAME_START: "game:start", // S,C
@@ -21,10 +22,7 @@ const Events = {
     GAME_END: "game:end", // S
     GAME_SCORE: "game:score", // S
 
-    CANVAS_BEGIN_DRAW: "canvas:begin_draw", // S,C
-    CANVAS_DRAW: "canvas:draw", // S,C
-    CANVAS_FILL: "canvas:fill", // S,C
-    CANVAS_CLEAR: "canvas:clear", // S,C
+    CANVAS: "canvas", // S,C
 
     CHAT_MESSAGE: "chat:message", // S,C
     CHAT_GUESS: "chat:guess", // S
