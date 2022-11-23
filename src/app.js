@@ -7,6 +7,8 @@ import { Server as SocketServer } from "socket.io";
 
 import routes from "./routes.js";
 
+import registerSocketConnections from "./io/index.js";
+
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -22,6 +24,8 @@ app.use("/api", routes);
 
 const httpServer = createServer(app);
 const socketServer = new SocketServer(httpServer, { cors: { origin: "*" } });
+
+registerSocketConnections(socketServer);
 
 const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT);
