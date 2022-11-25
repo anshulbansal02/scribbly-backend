@@ -77,26 +77,26 @@ class EventBroker {
     };
 
     #distributeEvents = (message, scope) => {
-        function executeHandlers(channel) {
+        function executeHandlers(subchannels, channel) {
             for (const { id, handler } of channel.onAnyHandlers) {
-                handler(message);
+                handler(subchannels, message);
             }
 
             const eventSpecificHandlers = channel.eventHandlers[event] ?? [];
             for (const { id, handler } of eventSpecificHandlers) {
-                handler(message);
+                handler(subchannels, message);
             }
         }
 
         const [namespace, event] = scope.split("$");
         const subchannelNames = namespace.split(":");
 
-        let channel = this.#channelTree[subchannelNames.shift()];
+        let channel = this.#channelTree[subchannelNames[0]];
 
         executeHandlers(channel);
-        for (const subchannelName of subchannelNames) {
+        for (const subchannelName of subchannelNames.slice(1)) {
             channel = channel.subchannels[subchannelName];
-            executeHandlers(channel);
+            executeHandlers(subchannelNames, channel);
         }
     };
 }

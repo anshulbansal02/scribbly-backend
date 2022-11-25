@@ -1,15 +1,21 @@
-import { shuffle } from "../../../utils";
-import Scoreboard from "../Scoreboard";
+import Scoreboard from "./Scoreboard.js";
+import GamePreferences from "./GamePreferences.js";
 
-class Game extends Entity {
+class Game {
     constructor() {
         this.id = this._generateId();
 
         this.preferences = new GamePreferences();
         this.scoreboard = new Scoreboard();
 
+        this.status = "pre_start";
+
         this.state = {
-            word: null,
+            word: {
+                original: null,
+                obfuscated: null,
+                choices: [],
+            },
             turn: {
                 order: [],
                 index: 0,
@@ -22,20 +28,4 @@ class Game extends Entity {
     _generateId() {
         return nanoid(12);
     }
-
-    turns = {
-        randomize() {
-            shuffle(this.turn.order);
-        },
-
-        reset() {
-            const turn = this.state.turn;
-            turn.playerId = turn.order[--turn.index];
-        },
-
-        next() {
-            const turn = this.state.turn;
-            return turn.order[turn.index++];
-        },
-    };
 }

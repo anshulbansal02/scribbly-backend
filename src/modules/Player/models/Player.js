@@ -1,13 +1,10 @@
 import { nanoid } from "nanoid";
-import Entity from "../../../lib/Entity.js";
 
-import Avatar from "./Avatar.js";
-
-class Player extends Entity {
+class Player {
     constructor({ username }) {
         this.id = this.generateId();
         this.username = username;
-        this.avatar = new Avatar(this.id);
+        this.avatar;
         this.roomId;
     }
 

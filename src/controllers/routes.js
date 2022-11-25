@@ -1,11 +1,9 @@
 import { Router } from "express";
 
-import clientRequired from "./io/middleware.js";
-import PlayerService from "./modules/Player/player.service.js";
-import RoomService from "./modules/Room/room.service.js";
+import clientRequired from "./../lib/Socket/middleware.js";
 
-PlayerService.boostrap({}, {});
-RoomService.bootstrap({}, {});
+import PlayerService from "../modules/Player/player.service.js";
+import RoomService from "../modules/Room/room.service.js";
 
 const playerService = PlayerService.service;
 const roomService = RoomService.service;
