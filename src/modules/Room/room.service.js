@@ -76,6 +76,13 @@ class RoomService {
             );
             playerIds.splice(playerIds.indexOf(playerId));
 
+            const adminId = await this.roomCollection.getField(
+                roomId,
+                "adminId"
+            );
+
+            if (playerId === adminId) this.worker.electAdmin();
+
             await Promise.all([
                 this.playerRelCollection.delRecord(playerId),
                 this.roomCollection.setField(roomId, "playerIds", playerIds),

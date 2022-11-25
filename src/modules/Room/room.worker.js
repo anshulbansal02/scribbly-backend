@@ -8,9 +8,17 @@ class RoomWorker {
 
         this.playerChannel = broker.subchannel("player");
         this.roomChannel = broker.subchannel("room");
+
+        this._subscribeToUpdates();
     }
 
-    _subscribeToUpdates() {}
+    _subscribeToUpdates() {
+        this.roomChannel.on("admin_elect", async (channels, adminId) => {
+            const roomId = channels.at(-1);
+            await this.requestsQueueCollection.lSet(roomId, 0, 0);
+            setImmediate(() => this._processJoinRequest(roomId));
+        });
+    }
 
     joinRequests = {
         async init(roomId) {
@@ -38,7 +46,7 @@ class RoomWorker {
         },
     };
 
-    async _electAdmin(roomId) {
+    async electAdmin(roomId) {
         const playerIds = await this.roomCollection.getField(
             roomId,
             "playerIds"
@@ -48,8 +56,6 @@ class RoomWorker {
 
         await this.roomCollection.setField(roomId, "adminId", adminId);
         await this.roomChannel.subchannel(roomId).emit("admin_elect", adminId);
-
-        setImmediate(() => this._processJoinRequest(roomId));
     }
 
     async _addPlayer(roomId, playerId) {
@@ -81,12 +87,16 @@ class RoomWorker {
             this.playerChannel.off(handlerId);
         }
 
+        const playerId = await this.requestsQueueCollection.lIndex(roomId, 1);
+
+        if (!playerId) {
+            return;
+        }
+
         // Set is processing request
         await this.requestsQueueCollection.lSet(roomId, 0, 1);
 
         // Process join request
-        const playerId = await this.requestsQueueCollection.lIndex(roomId, 1);
-
         const roomIsPrivate = await this.roomCollection.getField(
             roomId,
             "settings.isPrivate"
@@ -106,7 +116,7 @@ class RoomWorker {
 
         handlerId = await adminChannel.on(
             "player_join_response",
-            async ({ playerId, approve }) => {
+            async (channels, { playerId, approve }) => {
                 if (approve) {
                     this._addPlayer(roomId, playerId);
                 }
