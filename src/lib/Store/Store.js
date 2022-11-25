@@ -63,6 +63,29 @@ class Collection {
         return result[0] ?? null;
     }
 
+    async rPush(key, ...values) {
+        return await this.store.rPush(
+            this._transformKey(key),
+            values.map(String)
+        );
+    }
+
+    async lPop(key) {
+        return await this.store.lPop(this._transformKey(key));
+    }
+
+    async lIndex(key) {
+        return await this.store.lIndex(this._transformKey(key));
+    }
+
+    async lRem(key, value) {
+        return await this.store.lRem(this._transformKey(key), 0, value);
+    }
+
+    async lSet(key, index, value) {
+        return await this.store.lSet(this._transformKey(key), index, value);
+    }
+
     async setKey(key, value) {
         return await this.store.set(this._transformKey(key), value);
     }
