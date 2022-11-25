@@ -30,6 +30,7 @@ class RoomService {
         await Promise.all([
             this.roomCollection.saveRecord(room),
             this.playerRelCollection.setKey(adminPlayerId, room.id),
+            this.worker.joinRequests.init(room.id),
             this.roomChannel.emit("create", room),
         ]);
 
@@ -45,7 +46,17 @@ class RoomService {
     }
 
     async joinRequest(roomId, playerId) {
-        await this.worker.joinRequests.addPlayer(roomId, playerId);
+        const playerRoomRel = await this.playerRelCollection.getRecord(
+            playerId
+        );
+
+        if (playerRoomRel) {
+            if (playerRoomRel.status === "requested") {
+                this.cancelJoinRequest(playerId);
+            }
+        } else {
+            await this.worker.joinRequests.addPlayer(roomId, playerId);
+        }
     }
 
     async cancelJoinRequest(playerId) {
@@ -53,7 +64,10 @@ class RoomService {
     }
 
     async leave(playerId) {
-        const roomId = await this.playerRelCollection.getKey(playerId);
+        const { roomId, status } =
+            (await this.playerRelCollection.getRecord(playerId)) ?? {};
+
+        if (status === "requested") return;
 
         if (roomId) {
             const playerIds = await this.roomCollection.getField(
@@ -63,7 +77,7 @@ class RoomService {
             playerIds.splice(playerIds.indexOf(playerId));
 
             await Promise.all([
-                this.playerRelCollection.delKey(playerId),
+                this.playerRelCollection.delRecord(playerId),
                 this.roomCollection.setField(roomId, "playerIds", playerIds),
 
                 this.roomChannel

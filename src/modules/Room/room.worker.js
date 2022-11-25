@@ -10,12 +10,32 @@ class RoomWorker {
         this.roomChannel = broker.subchannel("room");
     }
 
+    _subscribeToUpdates() {}
+
     joinRequests = {
-        async add(roomId, playerId) {
-            await this.requestsQueueCollection.listPush(roomId, playerId);
+        async init(roomId) {
+            await this.requestsQueueCollection.delKey(roomId);
+            await this.requestsQueueCollection.rPush(roomId, 0, "");
         },
 
-        async remove(roomId, playerId) {},
+        async add(roomId, playerId) {
+            await this.playerRelCollection.saveRecord(playerId, {
+                roomId,
+                status: "requested",
+            });
+            await this.requestsQueueCollection.rPush(roomId, playerId);
+            setImmediate(() => this._processJoinRequest(roomId));
+        },
+
+        async remove(playerId) {
+            const roomId = await this.playerRelCollection.getField(
+                roomId,
+                "roomId"
+            );
+            await this.requestsQueueCollection.lRem(roomId, playerId);
+            await this.playerRelCollection.delRecord(roomId);
+            setImmediate(() => this._processJoinRequest(roomId));
+        },
     };
 
     async _electAdmin(roomId) {
@@ -28,6 +48,8 @@ class RoomWorker {
 
         await this.roomCollection.setField(roomId, "adminId", adminId);
         await this.roomChannel.subchannel(roomId).emit("admin_elect", adminId);
+
+        setImmediate(() => this._processJoinRequest(roomId));
     }
 
     async _addPlayer(roomId, playerId) {
@@ -38,7 +60,7 @@ class RoomWorker {
         playerIds.push(playerId);
 
         await Promise.all([
-            this.playerRelCollection.setKey(playerId, roomId),
+            this.playerRelCollection.setField(playerId, "status", "joined"),
             this.roomCollection.setField(roomId, "playerIds", playerIds),
             this.roomChannel.subchannel(roomId).emit("player_join", playerId),
             this.playerChannel.subchannel(playerId).emit("room_join", roomId),
@@ -46,10 +68,24 @@ class RoomWorker {
     }
 
     _processJoinRequest = async (roomId) => {
-        const playerId = await this.requestsQueueCollection.listIndex(
+        // Check if already processing a request
+        const isProcessing = +(await this.requestsQueueCollection.lIndex(
             roomId,
             0
-        );
+        ));
+        if (isProcessing) return;
+
+        // Turn off previous handler
+        let handlerId = await this.requestsQueueCollection.lIndex(roomId, 1);
+        if (handlerId) {
+            this.playerChannel.off(handlerId);
+        }
+
+        // Set is processing request
+        await this.requestsQueueCollection.lSet(roomId, 0, 1);
+
+        // Process join request
+        const playerId = await this.requestsQueueCollection.lIndex(roomId, 1);
 
         const roomIsPrivate = await this.roomCollection.getField(
             roomId,
@@ -57,7 +93,8 @@ class RoomWorker {
         );
         if (!roomIsPrivate) {
             this._addPlayer(roomId, playerId);
-            await this.requestsQueueCollection.listLeftPop(roomId);
+            await this.requestsQueueCollection.lRem(roomId, playerId);
+            await this.requestsQueueCollection.lSet(roomId, 0, 0);
             setImmediate(() => this._processJoinRequest(roomId));
             return;
         }
@@ -67,18 +104,20 @@ class RoomWorker {
 
         await adminChannel.emit("player_join_request", playerId);
 
-        adminChannel.on(
+        handlerId = await adminChannel.on(
             "player_join_response",
             async ({ playerId, approve }) => {
                 if (approve) {
                     this._addPlayer(roomId, playerId);
-                    await playerChannel.emit("join_response", {
-                        playerId,
-                        approve,
-                    });
                 }
+                await playerChannel.emit("join_response", {
+                    playerId,
+                    approve,
+                });
+                await this.requestsQueueCollection.lSet(roomId, 0, 0);
             }
         );
+        await this.requestsQueueCollection.lSet(roomId, 1, handlerId);
     };
 }
 
