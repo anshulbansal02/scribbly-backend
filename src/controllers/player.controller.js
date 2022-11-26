@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import controller from "./index.js";
+import httpStatus from "./responses.js";
 
 import { clientRequired } from "./middlewares.js";
 
@@ -24,12 +25,17 @@ class PlayerController {
         const { username } = req.body;
         const player = await this.playerService.create(username);
         req.client.playerId = player.id;
-        return player;
+        return httpStatus.Created(player);
     });
 
     getPlayer = controller(async (req, res) => {
         const { playerId } = req.params;
-        return await this.playerService.get(playerId);
+        const player = await this.playerService.get(playerId);
+        if (player) {
+            return httpStatus.OK(player);
+        } else {
+            return httpStatus.NotFound();
+        }
     });
 }
 
