@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import controller from "./index.js";
 
+import { clientRequired, playerRequired } from "./middlewares.js";
+
 class RoomController {
     constructor(services) {
         this.playerService = services.playerService;
@@ -10,6 +12,9 @@ class RoomController {
 
     get routes() {
         const router = new Router();
+
+        router.use(clientRequired);
+        router.use(playerRequired);
 
         router.post("/create", this.createRoom);
         router.post("/join/:roomId", this.joinRoom);

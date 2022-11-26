@@ -1,4 +1,4 @@
-import Client from "./Client.js";
+import Client from "./../lib/Socket/Client.js";
 
 function clientRequired(req, res, next) {
     const clientId = req.header("Client-Id");
@@ -16,4 +16,15 @@ function clientRequired(req, res, next) {
     next();
 }
 
-export default clientRequired;
+function playerRequired(req, res, next) {
+    if (req.client && req.client.playerId) {
+        req.playerId = req.client.playerId;
+    } else {
+        return res.json({
+            error: "Player required",
+        });
+    }
+    next();
+}
+
+export { clientRequired, playerRequired };

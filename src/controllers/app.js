@@ -3,7 +3,7 @@ import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
 
-import { Server } from "socket.io";
+import { Server as SocketServer } from "socket.io";
 import registerSocketConnections from "../lib/Socket/index.js";
 
 import PlayerController from "./player.controller.js";
@@ -19,16 +19,16 @@ class AppController {
         app.use(morgan("dev"));
         app.use(express.json());
 
-        const socketServer = new Server(httpServer, {
-            path: "/client-connect",
-        });
-        registerSocketConnections(socketServer);
-        httpServer.on("request", app);
-
         app.use("/", this.routes);
-
         app.use("/api/player", new PlayerController(services).routes);
         app.use("/api/room", new RoomController(services).routes);
+
+        httpServer.on("request", app);
+        registerSocketConnections(
+            new SocketServer(httpServer, {
+                path: "/client-connect",
+            })
+        );
 
         return app;
     }
@@ -39,7 +39,7 @@ class AppController {
         router.get(
             "/",
             controller((req, res) => {
-                return { message: "Scribbly API" };
+                return { message: "Scribbly says hi! 👋" };
             })
         );
 

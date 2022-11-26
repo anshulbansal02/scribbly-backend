@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import controller from "./index.js";
 
+import { clientRequired } from "./middlewares.js";
+
 class PlayerController {
     constructor(services) {
         this.playerService = services.playerService;
@@ -11,6 +13,7 @@ class PlayerController {
     get routes() {
         const router = new Router();
 
+        router.use(clientRequired);
         router.post("/create", this.createPlayer);
         router.get("/:playerId", this.getPlayer);
 
