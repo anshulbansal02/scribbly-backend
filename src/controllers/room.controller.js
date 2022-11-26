@@ -3,6 +3,7 @@ import { Router } from "express";
 import controller from "./index.js";
 
 import { clientRequired, playerRequired } from "./middlewares.js";
+import httpStatus from "./responses.js";
 
 class RoomController {
     constructor(services) {
@@ -25,14 +26,20 @@ class RoomController {
     }
 
     createRoom = controller(async (req, res) => {
-        const { username } = req.body;
-        const player = await this.playerService.create(username);
-        req.client.playerId = player.id;
-        return player;
+        const playerId = req.playerId;
+
+        const room = await this.roomService.create(playerId);
+
+        return httpStatus.Created(room);
     });
 
     joinRoom = controller(async (req, res) => {
+        const playerId = req.playerId;
         const { roomId } = req.params;
+
+        await this.roomService.joinRequest(roomId, playerId);
+
+        return httpStatus.Accepted();
     });
 
     cancelJoin = controller(async (req, res) => {

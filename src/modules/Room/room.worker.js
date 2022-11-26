@@ -21,13 +21,14 @@ class RoomWorker {
     }
 
     joinRequests = {
-        async init(roomId) {
+        init: async (roomId) => {
             await this.requestsQueueCollection.delKey(roomId);
             await this.requestsQueueCollection.rPush(roomId, 0, "");
         },
 
-        async add(roomId, playerId) {
-            await this.playerRelCollection.saveRecord(playerId, {
+        add: async (roomId, playerId) => {
+            await this.playerRelCollection.saveRecord({
+                id: playerId,
                 roomId,
                 status: "requested",
             });
@@ -35,7 +36,7 @@ class RoomWorker {
             setImmediate(() => this._processJoinRequest(roomId));
         },
 
-        async remove(playerId) {
+        remove: async (playerId) => {
             const roomId = await this.playerRelCollection.getField(
                 roomId,
                 "roomId"
@@ -87,8 +88,7 @@ class RoomWorker {
             this.playerChannel.off(handlerId);
         }
 
-        const playerId = await this.requestsQueueCollection.lIndex(roomId, 1);
-
+        const playerId = await this.requestsQueueCollection.lIndex(roomId, 2);
         if (!playerId) {
             return;
         }

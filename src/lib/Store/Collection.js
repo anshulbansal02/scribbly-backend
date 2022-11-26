@@ -48,8 +48,8 @@ class Collection {
         return await this.store.lPop(this._transformKey(key));
     }
 
-    async lIndex(key) {
-        return await this.store.lIndex(this._transformKey(key));
+    async lIndex(key, index) {
+        return await this.store.lIndex(this._transformKey(key), index);
     }
 
     async lRem(key, value) {
@@ -57,7 +57,11 @@ class Collection {
     }
 
     async lSet(key, index, value) {
-        return await this.store.lSet(this._transformKey(key), index, value);
+        return await this.store.lSet(
+            this._transformKey(key),
+            index,
+            String(value)
+        );
     }
 
     async setKey(key, value) {

@@ -25,11 +25,15 @@ class RoomService {
 
     async create(adminPlayerId) {
         const room = new Room();
-        room.admin = adminId;
+        room.adminId = adminPlayerId;
 
         await Promise.all([
             this.roomCollection.saveRecord(room),
-            this.playerRelCollection.setKey(adminPlayerId, room.id),
+            this.playerRelCollection.saveRecord({
+                id: adminPlayerId,
+                roomId: room.id,
+                status: "joined",
+            }),
             this.worker.joinRequests.init(room.id),
             this.roomChannel.emit("create", room),
         ]);
@@ -42,7 +46,12 @@ class RoomService {
     }
 
     async getPlayerRoom(playerId) {
-        return await this.playerRelCollection.getKey(playerId);
+        const playerRoomRel = await this.playerRelCollection.getRecord(
+            playerId
+        );
+        if (playerRoomRel && playerRoomRel.status === "joined") {
+            return playerRoomRel.roomId;
+        }
     }
 
     async joinRequest(roomId, playerId) {
@@ -55,7 +64,7 @@ class RoomService {
                 this.cancelJoinRequest(playerId);
             }
         } else {
-            await this.worker.joinRequests.addPlayer(roomId, playerId);
+            await this.worker.joinRequests.add(roomId, playerId);
         }
     }
 

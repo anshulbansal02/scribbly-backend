@@ -9,9 +9,7 @@ function controller(routeHandler) {
             }
             res.json(response);
         } catch (err) {
-            res.json({
-                error: err.message,
-            });
+            throw err;
         }
     };
 }
