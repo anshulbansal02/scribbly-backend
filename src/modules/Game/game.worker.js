@@ -1,7 +1,10 @@
 class GameWorker {
     constructor(store, broker) {
-        this.store = store;
-        this.channel = broker.subchannel("game").subchannel(gameId);
+        this.gameChannel = broker.subchannel("game");
+        this.roomChannel = broker.subchannel("room");
+
+        this.roomRelCollection = store.collection("room_game_map");
+        this.gameCollection = store.collection("game");
 
         this._interruptPhase = null;
         this._phaseDelay = null;
@@ -10,15 +13,53 @@ class GameWorker {
     }
 
     _subscribeToUpdates() {
-        this.roomChannel.on("create", async (subchannels, room) => {
-            const game = await this.create(room.id);
-            this.roomChannel.subchannel(room.id).emit("game_create", game);
-        });
+        // this.roomChannel
+
+        this.roomChannel.on(
+            "player_leave",
+            async (subchannels, playerId) => {}
+        );
+
+        this.roomChannel.on("player_join", async (subchannels, playerId) => {});
+    }
+
+    async execute(initialPhase) {
+        let nextPhase = initialPhase;
+
+        while (nextPhase) {
+            nextPhase = this._interruptPhase ?? nextPhase;
+            this._interruptPhase = null;
+            [nextPhase, nextPhaseDelayTime] = nextPhase();
+            if (nextPhaseDelayTime) {
+                this._phaseDelay = delay(nextPhaseDelayTime);
+                await this._phaseDelay.wait;
+                this._phaseDelay = null;
+            }
+        }
+    }
+
+    interrupt(nextPhase) {
+        if (this._phaseDelay) {
+            this._phaseDelay.cancel();
+        }
+        this.interruptPhase = nextPhase;
+    }
+
+    start(gameId) {}
+
+    endTurn() {}
+}
+
+class GamePhaseExecuter {
+    constructor(gameId, broker) {
+        this.gameId = gameId;
+
+        this.gameChannel = broker.subchannel("game").subchannel(gameId);
     }
 
     phases = {
         gameStart: async () => {
-            await this.channel.emit("GAME_START");
+            await this.gameChannel.emit("GAME_START");
 
             return [this.phases.roundStart, 1000];
         },
@@ -105,29 +146,4 @@ class GameWorker {
 
         guessEnd: () => {},
     };
-
-    async execute(initialPhase) {
-        let nextPhase = initialPhase;
-
-        while (nextPhase) {
-            nextPhase = this._interruptPhase ?? nextPhase;
-            this._interruptPhase = null;
-            [nextPhase, nextPhaseDelayTime] = nextPhase();
-            if (nextPhaseDelayTime) {
-                this._phaseDelay = delay(nextPhaseDelayTime);
-                await this._phaseDelay.wait;
-                this._phaseDelay = null;
-            }
-        }
-    }
-
-    interrupt(nextPhase) {
-        if (this._phaseDelay) {
-            this._phaseDelay.cancel();
-        }
-        this.interruptPhase = nextPhase;
-    }
-
-    startGame() {}
-    endTurn() {}
 }

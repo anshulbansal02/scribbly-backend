@@ -2,7 +2,7 @@ import Room from "./models/Room.js";
 import RoomWorker from "./room.worker.js";
 
 class RoomService {
-    static bootstrap(store, broker) {
+    constructor(store, broker) {
         if (RoomService._instance) {
             throw new Error("RoomService is already initialized");
         }

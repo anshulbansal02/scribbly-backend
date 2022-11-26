@@ -4,8 +4,8 @@ class Player {
     constructor({ username }) {
         this.id = this.generateId();
         this.username = username;
-        this.avatar;
-        this.roomId;
+        this.avatar = null;
+        this.roomId = null;
     }
 
     generateId() {

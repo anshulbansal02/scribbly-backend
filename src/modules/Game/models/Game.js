@@ -29,3 +29,5 @@ class Game {
         return nanoid(12);
     }
 }
+
+export default Game;

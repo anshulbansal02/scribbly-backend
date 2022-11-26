@@ -1,17 +1,18 @@
+import Game from "./models/Game.js";
+
 class GameService {
     static boostrap(store, broker) {
         if (GameService._instance) {
-            return GameService._instance;
+            throw new Error("RoomService is already initialized");
         }
         GameService._instance = this;
 
-        this.roomChannel = broker.subchannel("room");
         this.gameChannel = broker.subchannel("game");
-        this.store = store;
 
-        this._subscribeToUpdates();
+        this.gameCollection = store.collection("game");
+        this.roomRelCollection = store.collection("room_game_map");
 
-        this.worker = new GameWorker(store, broker);
+        this.this.worker = new GameWorker(store, broker);
     }
 
     static get service() {
@@ -23,12 +24,19 @@ class GameService {
     async create(roomId) {
         const game = new Game();
 
-        await this.store.set(game.id, game);
+        await this.gameCollection.saveRecord(game);
+        await this.roomRelCollection.setKey(roomId, game.id);
+        await this.gameChannel.emit("create", game);
+
         return game;
     }
 
-    async get(playerId) {
-        return await this.store.get(playerId);
+    async get(gameId) {
+        return await this.gameCollection.getRecord(gameId);
+    }
+
+    async startGame(gameId) {
+        await this.worker.start(gameId);
     }
 }
 

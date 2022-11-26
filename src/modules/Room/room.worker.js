@@ -1,4 +1,4 @@
-import { randomInt } from "./../../utils";
+import { randomInt } from "./../../utils/index.js";
 
 class RoomWorker {
     constructor(store, broker) {

@@ -1,6 +1,8 @@
 import { nanoid } from "nanoid";
 import redis from "redis";
 
+import Channel from "./Channel.js";
+
 class EventBroker {
     #pubClient;
     #subClient;
@@ -8,7 +10,7 @@ class EventBroker {
     #channelTree;
 
     constructor(options) {
-        this.#pubClient = createClient();
+        this.#pubClient = redis.createClient();
         this.#subClient = this.#pubClient.duplicate();
 
         this.#channelTree = {};
@@ -93,9 +95,10 @@ class EventBroker {
 
         let channel = this.#channelTree[subchannelNames[0]];
 
-        executeHandlers(channel);
+        executeHandlers(subchannelNames, channel);
         for (const subchannelName of subchannelNames.slice(1)) {
             channel = channel.subchannels[subchannelName];
+            if (!channel) return;
             executeHandlers(subchannelNames, channel);
         }
     };

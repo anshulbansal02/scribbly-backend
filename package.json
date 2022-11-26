@@ -7,8 +7,8 @@
     "author": "Anshul Bansal <55446476+anshulbansal02@users.noreply.github.com>",
     "license": "MIT",
     "scripts": {
-        "start": "node ./src/app.js",
-        "dev": "nodemon ./src/app.js"
+        "start": "node ./src/main.js",
+        "dev": "nodemon ./src/main.js"
     },
     "dependencies": {
         "cors": "^2.8.5",

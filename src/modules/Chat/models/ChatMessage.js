@@ -12,3 +12,5 @@ class ChatMessage {
         return nanoid();
     }
 }
+
+export default ChatMessage;

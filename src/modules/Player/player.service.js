@@ -1,7 +1,7 @@
 import Player from "./models/Player.js";
 
 class PlayerService {
-    static boostrap(store, broker) {
+    constructor(store, broker) {
         if (PlayerService._instance) {
             throw new Error("PlayerService is already initialized");
         }
@@ -17,16 +17,16 @@ class PlayerService {
         return PlayerService._instance;
     }
 
-    async create(username) {
+    create = async (username) => {
         const player = new Player({ username });
         await this.playerCollection.saveRecord(player);
         await this.playerChannel.emit("create", player);
         return player;
-    }
+    };
 
-    async get(playerId) {
+    get = async (playerId) => {
         return await this.playerCollection.getRecord(playerId);
-    }
+    };
 }
 
 export default PlayerService;
