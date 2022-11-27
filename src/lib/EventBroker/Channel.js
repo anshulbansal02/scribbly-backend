@@ -6,16 +6,46 @@ class Channel {
         this.#broker = broker;
     }
 
-    async on(event, handler) {
-        await this.#broker.subscribe(this.namespace, event, handler);
+    on(event, handler, timeout) {
+        const handlerId = this.#broker.subscribe(
+            this.namespace,
+            event,
+            handler
+        );
+        if (timeout && typeof timeout === "number") {
+            setTimeout(() => {
+                this.#broker.unsubscribe(handlerId);
+            }, timeout);
+        }
     }
 
-    async onAny(handler) {
-        await this.#broker.subscribe(this.namespace, null, handler);
+    once(event, handler, timeout) {
+        const handlerId = this.#broker.subscribe(
+            this.namespace,
+            event,
+            (message, subchannels, id) => {
+                handler(message, subchannels, id);
+                this.#broker.unsubscribe(handlerId);
+            }
+        );
+        if (timeout && typeof timeout === "number") {
+            setTimeout(() => {
+                this.#broker.unsubscribe(handlerId);
+            }, timeout);
+        }
     }
 
-    async off(handlerId) {
-        await this.#broker.unsubscribe(handlerId);
+    onAny(handler, timeout) {
+        const handlerId = this.#broker.subscribe(this.namespace, null, handler);
+        if (timeout && typeof timeout === "number") {
+            setTimeout(() => {
+                this.#broker.unsubscribe(handlerId);
+            }, timeout);
+        }
+    }
+
+    off(handlerId) {
+        this.#broker.unsubscribe(handlerId);
     }
 
     async emit(event, data) {

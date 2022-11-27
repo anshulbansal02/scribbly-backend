@@ -109,7 +109,11 @@ class RoomWorker {
             return;
         }
 
-        const adminChannel = this.playerChannel.subchannel(adminId);
+        const adminId = await this.roomCollection.getField(roomId, "adminId");
+
+        const adminChannel = this.roomChannel
+            .subchannel(roomId)
+            .subchannel("admin");
         const playerChannel = this.playerChannel.subchannel(playerId);
 
         await adminChannel.emit("player_join_request", playerId);

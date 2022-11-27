@@ -1,15 +1,22 @@
-function controller(routeHandler) {
+import httpStatus from "./responses.js";
+
+function controller(handler) {
     return async (req, res) => {
         try {
-            const response = await routeHandler(req, res);
-            const { code } = response;
-            if (code && typeof code === "number") {
-                res.status(code);
-                delete response.code;
-            }
+            const { code, ...response } = await handler(req, res);
+            if (code && typeof code === "number") res.status(code);
             res.json(response);
         } catch (err) {
-            throw err;
+            const { code, ...error } = httpStatus.InternalServerError({
+                error: err.message,
+                stack: err.stack,
+            });
+            if (process.env.NODE_ENV === "development") {
+                res.status(code).json(error);
+                throw err;
+            } else {
+                res.status(code).json({ status: error.status });
+            }
         }
     };
 }

@@ -26,6 +26,7 @@ class RoomService {
     async create(adminPlayerId) {
         const room = new Room();
         room.adminId = adminPlayerId;
+        room.playerIds.push(adminPlayerId);
 
         await Promise.all([
             this.roomCollection.saveRecord(room),
