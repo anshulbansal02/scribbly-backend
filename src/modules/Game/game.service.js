@@ -3,7 +3,7 @@ import Game from "./models/Game.js";
 class GameService {
     static boostrap(store, broker) {
         if (GameService._instance) {
-            throw new Error("RoomService is already initialized");
+            throw new Error("GameService is already initialized");
         }
         GameService._instance = this;
 

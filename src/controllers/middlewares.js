@@ -1,26 +1,27 @@
 import Client from "./../lib/Socket/Client.js";
 
 import httpStatus from "./responses.js";
+import controller from "./index.js";
 
-function clientRequired(req, res, next) {
+const clientRequired = controller((req, res, next) => {
     const clientId = req.header("Client-Id");
     if (!clientId) {
-        return res.json(httpStatus.BadRequest("Client-Id header missing"));
+        return httpStatus.BadRequest("Client-Id header missing");
     }
     req.client = Client.get(clientId);
     if (!req.client) {
-        return res.json(httpStatus.BadRequest("Invalid Client-Id"));
+        return httpStatus.BadRequest("Invalid Client-Id");
     }
-    next();
-}
+    return next();
+});
 
-function playerRequired(req, res, next) {
+const playerRequired = controller((req, res, next) => {
     if (req.client && req.client.playerId) {
         req.playerId = req.client.playerId;
     } else {
-        return res.json(httpStatus.Unauthorized());
+        return httpStatus.Unauthorized();
     }
-    next();
-}
+    return next();
+});
 
 export { clientRequired, playerRequired };

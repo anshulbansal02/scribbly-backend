@@ -4,7 +4,7 @@ class Avatar {
         this.imageURI;
     }
 
-    async create(seed) {
+    static async create(seed) {
         let accent;
         let uri;
         // Fetch the avatar image

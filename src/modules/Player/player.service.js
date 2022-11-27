@@ -20,8 +20,7 @@ class PlayerService {
 
     create = async (username) => {
         const player = new Player({ username });
-        const avatar = await Avatar.create(player.id);
-        player.avatar = avatar;
+        player.avatar = await Avatar.create(player.id);
         await this.playerCollection.setRecord(player);
 
         await this.playerChannel.emit("create", player);

@@ -76,6 +76,10 @@ class Collection {
     async delKey(key) {
         return await this.store.del(this._transformKey(key));
     }
+
+    async exists(key) {
+        return await this.store.exists(this._transformKey(key));
+    }
 }
 
 export default Collection;

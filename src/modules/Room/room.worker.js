@@ -21,7 +21,7 @@ class RoomWorker {
             );
             await this.joinRequests._setIsProcessing(roomId, false);
 
-            this._processJoinRequest(roomId);
+            this.joinRequests._processRequest(roomId);
         });
     }
 
@@ -73,7 +73,7 @@ class RoomWorker {
                     this._addPlayer(roomId, playerId);
                     await this.requestsQueueCollection.lRem(roomId, playerId);
                     await this.joinRequests._setIsProcessing(roomId, false);
-                    this._processJoinRequest(roomId);
+                    this.joinRequests._processRequest(roomId);
                     return;
                 }
 
@@ -97,7 +97,7 @@ class RoomWorker {
                             playerId
                         );
                         await this.joinRequests._setIsProcessing(roomId, false);
-                        this._processJoinRequest(roomId);
+                        this.joinRequests._processRequest(roomId);
                     }
                 );
                 this.joinRequests._setRequestHandlerId(handlerId);
@@ -116,7 +116,7 @@ class RoomWorker {
                 status: "requested",
             });
             await this.requestsQueueCollection.rPush(roomId, playerId);
-            this._processJoinRequest(roomId);
+            this.joinRequests._processRequest(roomId);
         },
 
         remove: async (roomId, playerId) => {
@@ -129,7 +129,7 @@ class RoomWorker {
 
             await this.requestsQueueCollection.lRem(roomId, playerId);
             await this.playerRelCollection.delRecord(roomId);
-            this._processJoinRequest(roomId);
+            this.joinRequests._processRequest(roomId);
         },
     };
 

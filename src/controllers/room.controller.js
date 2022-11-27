@@ -1,7 +1,6 @@
 import { Router } from "express";
 
 import controller from "./index.js";
-
 import { clientRequired, playerRequired } from "./middlewares.js";
 import httpStatus from "./responses.js";
 
@@ -26,6 +25,7 @@ class RoomController {
     }
 
     createRoom = controller(async (req, res) => {
+        // check if already in room;
         const playerId = req.playerId;
 
         const room = await this.roomService.create(playerId);
@@ -34,6 +34,7 @@ class RoomController {
     });
 
     joinRoom = controller(async (req, res) => {
+        // check if already in room;
         const playerId = req.playerId;
         const { roomId } = req.params;
 
@@ -43,12 +44,23 @@ class RoomController {
     });
 
     cancelJoin = controller(async (req, res) => {
-        const { roomId } = req.params;
+        await this.roomService.cancelJoinRequest(req.playerId);
+
+        return httpStatus.Accepted();
     });
 
     getRoom = controller(async (req, res) => {
-        const { playerId } = req.params;
-        return await this.playerService.get(playerId);
+        const { roomId } = req.params;
+        const playerRoomId = await this.roomService.getPlayerRoomId(
+            req.playerId
+        );
+
+        if (roomId === playerRoomId) {
+            const room = await this.roomService.get(roomId);
+            return httpStatus.OK(room);
+        } else {
+            return httpStatus.Unauthorized();
+        }
     });
 }
 

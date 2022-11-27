@@ -1,9 +1,12 @@
 import httpStatus from "./responses.js";
 
 function controller(handler) {
-    return async (req, res) => {
+    return async (req, res, next) => {
         try {
-            const { code, ...response } = await handler(req, res);
+            const resp = await handler(req, res, next);
+            if (!resp) return;
+
+            const { code, ...response } = resp;
             if (code && typeof code === "number") res.status(code);
             res.json(response);
         } catch (err) {

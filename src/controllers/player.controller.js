@@ -31,11 +31,9 @@ class PlayerController {
     getPlayer = controller(async (req, res) => {
         const { playerId } = req.params;
         const player = await this.playerService.get(playerId);
-        if (player) {
-            return httpStatus.OK(player);
-        } else {
-            return httpStatus.NotFound();
-        }
+        return player
+            ? httpStatus.OK(player)
+            : httpStatus.NotFound(`Player with Id ${playerId} does not exist`);
     });
 }
 
