@@ -1,20 +1,21 @@
 import Room from "./models/Room.js";
+
 import RoomWorker from "./room.worker.js";
 
 class RoomService {
-    constructor(store, broker) {
+    constructor(store, mainChannel) {
         if (RoomService._instance) {
             throw new Error("RoomService is already initialized");
         }
         RoomService._instance = this;
 
-        this.playerChannel = broker.subchannel("player");
-        this.roomChannel = broker.subchannel("room");
+        this.playerChannel = mainChannel.subchannel("player");
+        this.roomChannel = mainChannel.subchannel("room");
 
         this.roomCollection = store.collection("room");
         this.playerRelCollection = store.collection("player_room_map");
 
-        this.worker = new RoomWorker(store, broker);
+        this.worker = new RoomWorker(store, mainChannel);
     }
 
     static get service() {
@@ -24,17 +25,16 @@ class RoomService {
     }
 
     async create(adminPlayerId) {
-        const room = new Room();
-        room.adminId = adminPlayerId;
-        room.playerIds.push(adminPlayerId);
+        const room = new Room(adminPlayerId, [adminPlayerId]);
 
         await Promise.all([
-            this.roomCollection.saveRecord(room),
-            this.playerRelCollection.saveRecord({
+            this.roomCollection.setRecord(room),
+            this.playerRelCollection.setRecord({
                 id: adminPlayerId,
                 roomId: room.id,
                 status: "joined",
             }),
+
             this.worker.joinRequests.init(room.id),
             this.roomChannel.emit("create", room),
         ]);
@@ -46,23 +46,19 @@ class RoomService {
         return await this.roomCollection.getRecord(roomId);
     }
 
-    async getPlayerRoom(playerId) {
-        const playerRoomRel = await this.playerRelCollection.getRecord(
-            playerId
-        );
-        if (playerRoomRel && playerRoomRel.status === "joined") {
-            return playerRoomRel.roomId;
-        }
+    async getPlayerRoomId(playerId) {
+        const playerRoom = await this.playerRelCollection.getRecord(playerId);
+        if (playerRoom && playerRoom.status === "joined")
+            return playerRoom.roomId;
     }
 
     async joinRequest(roomId, playerId) {
-        const playerRoomRel = await this.playerRelCollection.getRecord(
-            playerId
-        );
+        const playerRoom = await this.playerRelCollection.getRecord(playerId);
 
-        if (playerRoomRel) {
-            if (playerRoomRel.status === "requested") {
+        if (playerRoom) {
+            if (playerRoom.status === "requested") {
                 this.cancelJoinRequest(playerId);
+                await this.worker.joinRequests.add(roomId, playerId);
             }
         } else {
             await this.worker.joinRequests.add(roomId, playerId);
@@ -70,41 +66,33 @@ class RoomService {
     }
 
     async cancelJoinRequest(playerId) {
-        await this.worker.joinRequests.removePlayer(playerId);
+        const playerRoom = await this.playerRelCollection.getRecord(playerId);
+        if (playerRoom.status === "requested")
+            await this.worker.joinRequests.remove(playerRoom.roomId, playerId);
     }
 
     async leave(playerId) {
         const { roomId, status } =
             (await this.playerRelCollection.getRecord(playerId)) ?? {};
 
-        if (status === "requested") return;
+        if (!roomId || status === "requested") return;
 
-        if (roomId) {
-            const playerIds = await this.roomCollection.getField(
-                roomId,
-                "playerIds"
-            );
-            playerIds.splice(playerIds.indexOf(playerId));
+        const playerIds = await this.roomCollection.getField(
+            roomId,
+            "playerIds"
+        );
+        playerIds.splice(playerIds.indexOf(playerId));
 
-            const adminId = await this.roomCollection.getField(
-                roomId,
-                "adminId"
-            );
+        const adminId = await this.roomCollection.getField(roomId, "adminId");
+        if (playerId === adminId) this.worker.electAdmin();
 
-            if (playerId === adminId) this.worker.electAdmin();
+        await Promise.all([
+            this.playerRelCollection.delRecord(playerId),
+            this.roomCollection.setField(roomId, "playerIds", playerIds),
 
-            await Promise.all([
-                this.playerRelCollection.delRecord(playerId),
-                this.roomCollection.setField(roomId, "playerIds", playerIds),
-
-                this.roomChannel
-                    .subchannel(roomId)
-                    .emit("player_leave", playerId),
-                this.playerChannel
-                    .subchannel(playerId)
-                    .emit("room_leave", roomId),
-            ]);
-        }
+            this.roomChannel.subchannel(roomId).emit("player_leave", playerId),
+            this.playerChannel.subchannel(playerId).emit("room_leave", roomId),
+        ]);
     }
 }
 

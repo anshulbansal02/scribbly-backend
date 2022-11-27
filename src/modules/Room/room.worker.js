@@ -1,49 +1,135 @@
 import { randomInt } from "./../../utils/index.js";
 
 class RoomWorker {
-    constructor(store, broker) {
+    constructor(store, mainChannel) {
         this.roomCollection = store.collection("room");
         this.playerRelCollection = store.collection("player_room_map");
         this.requestsQueueCollection = store.collection("room_requests_queue");
 
-        this.playerChannel = broker.subchannel("player");
-        this.roomChannel = broker.subchannel("room");
+        this.playerChannel = mainChannel.subchannel("player");
+        this.roomChannel = mainChannel.subchannel("room");
 
         this._subscribeToUpdates();
     }
 
     _subscribeToUpdates() {
-        this.roomChannel.on("admin_elect", async (channels, adminId) => {
-            const roomId = channels.at(-1);
-            await this.requestsQueueCollection.lSet(roomId, 0, 0);
-            setImmediate(() => this._processJoinRequest(roomId));
+        this.roomChannel.on("admin_elect", async (adminId, subchannels) => {
+            const roomId = subchannels.at(-1);
+
+            this.roomChannel.off(
+                await this.joinRequests._getRequestHandlerId(roomId)
+            );
+            await this.joinRequests._setIsProcessing(roomId, false);
+
+            this._processJoinRequest(roomId);
         });
     }
 
     joinRequests = {
+        _setIsProcessing: async (roomId, isProcessing) => {
+            await this.requestsQueueCollection.lSet(
+                roomId,
+                0,
+                isProcessing ? 1 : 0
+            );
+        },
+        _isProcessing: async (roomId) => {
+            return +(await this.requestsQueueCollection.lIndex(roomId, 0));
+        },
+
+        _setRequestHandlerId: async (roomId, handlerId) => {
+            await this.requestsQueueCollection.lSet(roomId, 1, handlerId);
+        },
+        _getRequestHandlerId: async (roomId) => {
+            return await this.requestsQueueCollection.lIndex(roomId, 1);
+        },
+
+        _getRequestPlayerId: async (roomId) => {
+            return await this.requestsQueueCollection.lIndex(roomId, 2);
+        },
+
+        _processRequest: (roomId) => {
+            setImmediate(async () => {
+                // Check if already processing a request
+                if (await this.joinRequests._isProcessing(roomId)) return;
+
+                // Turn off previous handler
+                this.roomChannel.off(
+                    await this.joinRequests._getRequestHandlerId(roomId)
+                );
+
+                const playerId = await this.joinRequests._getRequestPlayerId();
+                if (!playerId) return;
+
+                // Set is processing request
+                await this.joinRequests._setIsProcessing(roomId, true);
+
+                // Process join request
+                const roomIsPrivate = await this.roomCollection.getField(
+                    roomId,
+                    "settings.isPrivate"
+                );
+                if (!roomIsPrivate) {
+                    this._addPlayer(roomId, playerId);
+                    await this.requestsQueueCollection.lRem(roomId, playerId);
+                    await this.joinRequests._setIsProcessing(roomId, false);
+                    this._processJoinRequest(roomId);
+                    return;
+                }
+
+                const adminChannel = this.roomChannel
+                    .subchannel(roomId)
+                    .subchannel("admin");
+                const reqestedPlayerChannel =
+                    this.playerChannel.subchannel(playerId);
+
+                await adminChannel.emit("player_join_request", playerId);
+                handlerId = adminChannel.once(
+                    "player_join_response",
+                    async ({ playerId, approval }) => {
+                        if (approval) this._addPlayer(roomId, playerId);
+                        await reqestedPlayerChannel.emit("room_join_response", {
+                            playerId,
+                            approval,
+                        });
+                        await this.requestsQueueCollection.lRem(
+                            roomId,
+                            playerId
+                        );
+                        await this.joinRequests._setIsProcessing(roomId, false);
+                        this._processJoinRequest(roomId);
+                    }
+                );
+                this.joinRequests._setRequestHandlerId(handlerId);
+            });
+        },
+
         init: async (roomId) => {
             await this.requestsQueueCollection.delKey(roomId);
-            await this.requestsQueueCollection.rPush(roomId, 0, "");
+            await this.requestsQueueCollection.rPush(roomId, 0, null);
         },
 
         add: async (roomId, playerId) => {
-            await this.playerRelCollection.saveRecord({
+            await this.playerRelCollection.setRecord({
                 id: playerId,
                 roomId,
                 status: "requested",
             });
             await this.requestsQueueCollection.rPush(roomId, playerId);
-            setImmediate(() => this._processJoinRequest(roomId));
+            this._processJoinRequest(roomId);
         },
 
-        remove: async (playerId) => {
-            const roomId = await this.playerRelCollection.getField(
-                roomId,
-                "roomId"
-            );
+        remove: async (roomId, playerId) => {
+            if ((await this.joinRequests._getRequestPlayerId()) === playerId) {
+                this.roomChannel.off(
+                    await this.joinRequests._getRequestHandlerId(roomId)
+                );
+                this.joinRequests._setIsProcessing(roomId, false);
+            }
+
             await this.requestsQueueCollection.lRem(roomId, playerId);
             await this.playerRelCollection.delRecord(roomId);
-            setImmediate(() => this._processJoinRequest(roomId));
+            this._processJoinRequest(roomId);
         },
     };
 
@@ -53,10 +139,12 @@ class RoomWorker {
             "playerIds"
         );
 
-        const adminId = playerIds[randomInt(0, playerIds.length - 1)];
+        const newAdminId = playerIds[randomInt(0, playerIds.length - 1)];
 
-        await this.roomCollection.setField(roomId, "adminId", adminId);
-        await this.roomChannel.subchannel(roomId).emit("admin_elect", adminId);
+        await this.roomCollection.setField(roomId, "adminId", newAdminId);
+        await this.roomChannel
+            .subchannel(roomId)
+            .emit("admin_elect", newAdminId);
     }
 
     async _addPlayer(roomId, playerId) {
@@ -70,69 +158,8 @@ class RoomWorker {
             this.playerRelCollection.setField(playerId, "status", "joined"),
             this.roomCollection.setField(roomId, "playerIds", playerIds),
             this.roomChannel.subchannel(roomId).emit("player_join", playerId),
-            this.playerChannel.subchannel(playerId).emit("room_join", roomId),
         ]);
     }
-
-    _processJoinRequest = async (roomId) => {
-        // Check if already processing a request
-        const isProcessing = +(await this.requestsQueueCollection.lIndex(
-            roomId,
-            0
-        ));
-        if (isProcessing) return;
-
-        // Turn off previous handler
-        let handlerId = await this.requestsQueueCollection.lIndex(roomId, 1);
-        if (handlerId) {
-            this.playerChannel.off(handlerId);
-        }
-
-        const playerId = await this.requestsQueueCollection.lIndex(roomId, 2);
-        if (!playerId) {
-            return;
-        }
-
-        // Set is processing request
-        await this.requestsQueueCollection.lSet(roomId, 0, 1);
-
-        // Process join request
-        const roomIsPrivate = await this.roomCollection.getField(
-            roomId,
-            "settings.isPrivate"
-        );
-        if (!roomIsPrivate) {
-            this._addPlayer(roomId, playerId);
-            await this.requestsQueueCollection.lRem(roomId, playerId);
-            await this.requestsQueueCollection.lSet(roomId, 0, 0);
-            setImmediate(() => this._processJoinRequest(roomId));
-            return;
-        }
-
-        const adminId = await this.roomCollection.getField(roomId, "adminId");
-
-        const adminChannel = this.roomChannel
-            .subchannel(roomId)
-            .subchannel("admin");
-        const playerChannel = this.playerChannel.subchannel(playerId);
-
-        await adminChannel.emit("player_join_request", playerId);
-
-        handlerId = await adminChannel.on(
-            "player_join_response",
-            async (channels, { playerId, approve }) => {
-                if (approve) {
-                    this._addPlayer(roomId, playerId);
-                }
-                await playerChannel.emit("join_response", {
-                    playerId,
-                    approve,
-                });
-                await this.requestsQueueCollection.lSet(roomId, 0, 0);
-            }
-        );
-        await this.requestsQueueCollection.lSet(roomId, 1, handlerId);
-    };
 }
 
 export default RoomWorker;

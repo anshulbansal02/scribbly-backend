@@ -1,13 +1,14 @@
 import Player from "./models/Player.js";
+import Avatar from "./models/Avatar.js";
 
 class PlayerService {
-    constructor(store, broker) {
+    constructor(store, mainChannel) {
         if (PlayerService._instance) {
             throw new Error("PlayerService is already initialized");
         }
         PlayerService._instance = this;
 
-        this.playerChannel = broker.subchannel("player");
+        this.playerChannel = mainChannel.subchannel("player");
         this.playerCollection = store.collection("player");
     }
 
@@ -19,7 +20,10 @@ class PlayerService {
 
     create = async (username) => {
         const player = new Player({ username });
-        await this.playerCollection.saveRecord(player);
+        const avatar = await Avatar.create(player.id);
+        player.avatar = avatar;
+        await this.playerCollection.setRecord(player);
+
         await this.playerChannel.emit("create", player);
         return player;
     };

@@ -1,11 +1,12 @@
-import RoomSettings from "./RoomSettings.js";
 import { customAlphabet } from "nanoid";
 
+import RoomSettings from "./RoomSettings.js";
+
 class Room {
-    constructor() {
+    constructor(adminId, playerIds) {
         this.id = this._generateId();
-        this.playerIds = [];
-        this.adminId;
+        this.playerIds = playerIds ?? [];
+        this.adminId = adminId;
         this.settings = new RoomSettings();
     }
 

@@ -8,8 +8,8 @@ class Collection {
         return `${this.name}:${key}`;
     }
 
-    // Record Level Operations
-    async saveRecord(record) {
+    // Record Operations
+    async setRecord(record) {
         return await this.store.json.set(
             this._transformKey(record.id),
             "$",
@@ -21,7 +21,6 @@ class Collection {
         return await this.store.json.get(this._transformKey(recordId));
     }
 
-    // Atomic Operations
     async setField(recordId, field, value) {
         return await this.store.json.set(
             this._transformKey(recordId),
@@ -37,6 +36,7 @@ class Collection {
         return result[0] ?? null;
     }
 
+    // List operations
     async rPush(key, ...values) {
         return await this.store.rPush(
             this._transformKey(key),
@@ -64,6 +64,7 @@ class Collection {
         );
     }
 
+    // Key Operations
     async setKey(key, value) {
         return await this.store.set(this._transformKey(key), value);
     }
