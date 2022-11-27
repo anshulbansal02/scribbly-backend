@@ -84,8 +84,8 @@ class EventBroker {
         this.#handlersRef.delete(handlerId);
 
         let channel = this.#channelTree[namespace.shift()];
-        for (const subchannelName in namespace) {
-            channel = channel.subchannel[subchannelName];
+        for (const subchannelName of namespace) {
+            channel = channel.subchannels[subchannelName];
         }
 
         for (let i = 0; i < channel.onAnyHandlers.length; i++) {

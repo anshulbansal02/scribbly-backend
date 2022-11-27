@@ -17,6 +17,7 @@ class Channel {
                 this.#broker.unsubscribe(handlerId);
             }, timeout);
         }
+        return handlerId;
     }
 
     once(event, handler, timeout) {
@@ -33,6 +34,7 @@ class Channel {
                 this.#broker.unsubscribe(handlerId);
             }, timeout);
         }
+        return handlerId;
     }
 
     onAny(handler, timeout) {
@@ -42,6 +44,7 @@ class Channel {
                 this.#broker.unsubscribe(handlerId);
             }, timeout);
         }
+        return handlerId;
     }
 
     off(handlerId) {

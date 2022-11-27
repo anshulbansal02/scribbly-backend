@@ -9,6 +9,7 @@ import registerSocketConnections from "../lib/Socket/index.js";
 import PlayerController from "./player.controller.js";
 import RoomController from "./room.controller.js";
 import controller from "./index.js";
+import httpStatus from "./responses.js";
 
 class AppController {
     constructor(httpServer, services) {
@@ -22,6 +23,13 @@ class AppController {
         app.use("/", this.routes);
         app.use("/api/player", new PlayerController(services).routes);
         app.use("/api/room", new RoomController(services).routes);
+
+        // Not Found Handler
+        app.use(
+            controller((req, res) => {
+                return httpStatus.NotFound("You seem lost 😢");
+            })
+        );
 
         httpServer.on("request", app);
         registerSocketConnections(
@@ -39,7 +47,7 @@ class AppController {
         router.get(
             "/",
             controller((req, res) => {
-                return { message: "Scribbly says hi! 👋" };
+                return httpStatus.OK("Scribbly says hi! 👋");
             })
         );
 

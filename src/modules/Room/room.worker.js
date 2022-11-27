@@ -58,7 +58,10 @@ class RoomWorker {
                     await this.joinRequests._getRequestHandlerId(roomId)
                 );
 
-                const playerId = await this.joinRequests._getRequestPlayerId();
+                const playerId = await this.joinRequests._getRequestPlayerId(
+                    roomId
+                );
+
                 if (!playerId) return;
 
                 // Set is processing request
@@ -84,9 +87,9 @@ class RoomWorker {
                     this.playerChannel.subchannel(playerId);
 
                 await adminChannel.emit("player_join_request", playerId);
-                handlerId = adminChannel.once(
+                const handlerId = adminChannel.once(
                     "player_join_response",
-                    async ({ playerId, approval }) => {
+                    async ({ approval }) => {
                         if (approval) this._addPlayer(roomId, playerId);
                         await reqestedPlayerChannel.emit("room_join_response", {
                             playerId,
@@ -100,7 +103,7 @@ class RoomWorker {
                         this.joinRequests._processRequest(roomId);
                     }
                 );
-                this.joinRequests._setRequestHandlerId(handlerId);
+                await this.joinRequests._setRequestHandlerId(roomId, handlerId);
             });
         },
 
