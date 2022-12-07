@@ -1,7 +1,7 @@
-import Client from "./../lib/Socket/Client.js";
+import Client from "../../lib/Socket/Client.js";
 
-import httpStatus from "./responses.js";
-import controller from "./index.js";
+import httpStatus from "../helpers/httpStatus.js";
+import controller from "../helpers/controller.js";
 
 const clientRequired = controller((req, res, next) => {
     const clientId = req.header("Client-Id");

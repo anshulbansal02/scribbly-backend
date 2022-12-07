@@ -1,8 +1,9 @@
 import { Router } from "express";
 
-import controller from "./index.js";
-import { clientRequired, playerRequired } from "./middlewares.js";
-import httpStatus from "./responses.js";
+import controller from "./../helpers/controller.js";
+import httpStatus from "../helpers/httpStatus.js";
+
+import { clientRequired, playerRequired } from "../middlewares/middlewares.js";
 
 class RoomController {
     constructor(services) {

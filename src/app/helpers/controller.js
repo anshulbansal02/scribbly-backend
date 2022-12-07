@@ -1,14 +1,15 @@
-import httpStatus from "./responses.js";
+import httpStatus from "./httpStatus.js";
 
-function controller(handler) {
+function controller(requestHandler) {
     return async (req, res, next) => {
         try {
-            const resp = await handler(req, res, next);
-            if (!resp) return;
+            const returnVal = await requestHandler(req, res, next);
+            if (!returnVal) return;
 
-            const { code, ...response } = resp;
-            if (code && typeof code === "number") res.status(code);
-            res.json(response);
+            const { code, ...response } = returnVal;
+            res.status(code && typeof code === "number" ? code : 200).json(
+                response
+            );
         } catch (err) {
             const { code, ...error } = httpStatus.InternalServerError({
                 error: err.message,

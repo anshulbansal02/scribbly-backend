@@ -226,14 +226,11 @@ const httpStatus = {
 };
 
 function createResponse(status) {
-    return (message) => {
-        return {
-            ...status,
-            message,
-        };
-    };
+    return (message) => ({
+        ...status,
+        message,
+    });
 }
-
 for (const key in httpStatus) {
     httpStatus[key] = createResponse(httpStatus[key]);
 }

@@ -74,6 +74,9 @@ class RoomWorker {
                 );
                 if (!roomIsPrivate) {
                     this._addPlayer(roomId, playerId);
+                    await reqestedPlayerChannel.emit("room_join_response", {
+                        approval: true,
+                    });
                     await this.requestsQueueCollection.lRem(roomId, playerId);
                     await this.joinRequests._setIsProcessing(roomId, false);
                     this.joinRequests._processRequest(roomId);
@@ -92,7 +95,6 @@ class RoomWorker {
                     async ({ approval }) => {
                         if (approval) this._addPlayer(roomId, playerId);
                         await reqestedPlayerChannel.emit("room_join_response", {
-                            playerId,
                             approval,
                         });
                         await this.requestsQueueCollection.lRem(

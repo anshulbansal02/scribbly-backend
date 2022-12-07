@@ -1,9 +1,9 @@
 import { Router } from "express";
 
-import controller from "./index.js";
-import httpStatus from "./responses.js";
+import controller from "./../helpers/controller.js";
+import httpStatus from "../helpers/httpStatus.js";
 
-import { clientRequired } from "./middlewares.js";
+import { clientRequired } from "../middlewares/middlewares.js";
 
 class PlayerController {
     constructor(services) {

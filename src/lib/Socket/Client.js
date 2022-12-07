@@ -16,7 +16,6 @@ class Client {
     static create(socket) {
         const client = new Client();
         this.#clients.set(client.id, client);
-        console.log("New Client: ", client);
         return client;
     }
 
