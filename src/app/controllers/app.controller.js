@@ -1,27 +1,40 @@
-import { createServer } from "http";
+import http from "http";
 import express, { Router } from "express";
-import helmet from "helmet";
-import cors from "cors";
-import morgan from "morgan";
+import { Socket } from "../../lib/Socket/index.js";
 
 import controller from "./../helpers/controller.js";
 import httpStatus from "../helpers/httpStatus.js";
 
-import PlayerController from "./player.controller.js";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+
 import RoomController from "./room.controller.js";
+import PlayerController from "./player.controller.js";
+import PlayerClientMapper from "../helpers/playerClient.js";
 
 class AppController {
     constructor(services) {
         this.services = services;
 
-        this.expressApp = express();
-        this.expressApp.use(this.routes);
+        this.httpServer = http.createServer();
+        this.socketServer = Socket.createServer({
+            httpServer: this.httpServer,
+            path: process.env.WEBSOCKET_CONNECTION_PATH,
+        });
+
+        this.services.ss = new PlayerClientMapper(
+            services.roomService,
+            this.socketServer
+        );
+
+        const expressApp = express();
+        expressApp.use(this.routes);
+        this.httpServer.on("request", expressApp);
     }
 
     listen(port) {
-        const httpServer = createServer(this.expressApp);
-
-        httpServer
+        this.httpServer
             .on("listening", () => {
                 console.log(`Server listening on http://127.0.0.1:${port}`);
             })
@@ -46,6 +59,8 @@ class AppController {
         // Other Controllers
         router.use("/api/player", new PlayerController(this.services).routes);
         router.use("/api/room", new RoomController(this.services).routes);
+        // router.use("/api/chat", new ChatController(this.services).routes);
+        // router.use("/api/game", new GameController(this.services).routes);
 
         // Not Found Handler
         router.use(this.routeNotFound);

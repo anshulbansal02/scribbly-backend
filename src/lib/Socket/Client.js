@@ -1,26 +1,26 @@
 import { nanoid } from "nanoid";
 
-class Client {
-    static #clients = new Map();
+import EventEmitter from "events";
+
+class Client extends EventEmitter {
     #socket;
 
     constructor(socket) {
-        this.id = this._generateId();
+        super();
+        this.id = this.#generateId();
         this.#socket = socket;
     }
 
-    _generateId() {
+    #generateId() {
         return nanoid(12);
     }
 
-    static create(socket) {
-        const client = new Client();
-        this.#clients.set(client.id, client);
-        return client;
+    emit(event, data) {
+        this.#socket.emit(event, data);
     }
 
-    static get(clientId) {
-        return this.#clients.get(clientId);
+    on(event, handler) {
+        this.#socket.on(event, handler);
     }
 }
 

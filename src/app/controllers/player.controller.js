@@ -1,4 +1,5 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 
 import controller from "./../helpers/controller.js";
 import httpStatus from "../helpers/httpStatus.js";
@@ -9,6 +10,7 @@ class PlayerController {
     constructor(services) {
         this.playerService = services.playerService;
         this.roomService = services.roomService;
+        this.playerClientMapper = services.ss;
     }
 
     get routes() {
@@ -16,6 +18,7 @@ class PlayerController {
 
         router.use(clientRequired);
         router.post("/create", this.createPlayer);
+        router.patch("/reassociate", this.reassociatePlayer);
         router.get("/:playerId", this.getPlayer);
 
         return router;
@@ -24,8 +27,29 @@ class PlayerController {
     createPlayer = controller(async (req, res) => {
         const { username } = req.body;
         const player = await this.playerService.create(username);
-        req.client.playerId = player.id;
-        return httpStatus.Created(player);
+
+        const token = this.createAssociationToken();
+        this.playerClientMapper.associate(player.id, req.client.id);
+
+        return httpStatus.Created({
+            player,
+            token,
+        });
+    });
+
+    reassociatePlayer = controller(async (req, res) => {
+        const { associationToken } = req.body;
+
+        if (
+            associationToken &&
+            jwt.verify(associationToken, process.env.SECRET_KEY)
+        ) {
+            const newToken = this.createAssociationToken();
+            this.playerClientMapper.associate(player.id, req.client.id);
+            return httpStatus.OK({ token: newToken });
+        } else {
+            return httpStatus.Unauthorized();
+        }
     });
 
     getPlayer = controller(async (req, res) => {
@@ -35,6 +59,13 @@ class PlayerController {
             ? httpStatus.OK(player)
             : httpStatus.NotFound(`Player with Id ${playerId} does not exist`);
     });
+
+    createAssociationToken(playerId, clientId) {
+        return jwt.sign({
+            playerId,
+            clientId,
+        });
+    }
 }
 
 export default PlayerController;

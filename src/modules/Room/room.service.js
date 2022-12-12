@@ -46,6 +46,10 @@ class RoomService {
         return await this.roomCollection.getRecord(roomId);
     }
 
+    async getPlayerIds(roomId) {
+        return await this.roomCollection.getField(roomId, "playerIds");
+    }
+
     async getPlayerRoomId(playerId) {
         const playerRoom = await this.playerRelCollection.getRecord(playerId);
         if (playerRoom && playerRoom.status === "joined")
@@ -91,7 +95,6 @@ class RoomService {
             this.roomCollection.setField(roomId, "playerIds", playerIds),
 
             this.roomChannel.subchannel(roomId).emit("player_leave", playerId),
-            this.playerChannel.subchannel(playerId).emit("room_leave", roomId),
         ]);
     }
 }

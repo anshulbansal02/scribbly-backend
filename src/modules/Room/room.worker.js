@@ -74,9 +74,12 @@ class RoomWorker {
                 );
                 if (!roomIsPrivate) {
                     this._addPlayer(roomId, playerId);
-                    await reqestedPlayerChannel.emit("room_join_response", {
-                        approval: true,
-                    });
+                    await this.roomChannel
+                        .subchannel(roomId)
+                        .emit("room_join_response", {
+                            playerId,
+                            approval: true,
+                        });
                     await this.requestsQueueCollection.lRem(roomId, playerId);
                     await this.joinRequests._setIsProcessing(roomId, false);
                     this.joinRequests._processRequest(roomId);
@@ -86,17 +89,18 @@ class RoomWorker {
                 const adminChannel = this.roomChannel
                     .subchannel(roomId)
                     .subchannel("admin");
-                const reqestedPlayerChannel =
-                    this.playerChannel.subchannel(playerId);
 
                 await adminChannel.emit("player_join_request", playerId);
                 const handlerId = adminChannel.once(
                     "player_join_response",
                     async ({ approval }) => {
                         if (approval) this._addPlayer(roomId, playerId);
-                        await reqestedPlayerChannel.emit("room_join_response", {
-                            approval,
-                        });
+                        await this.roomChannel
+                            .subchannel(roomId)
+                            .emit("room_join_response", {
+                                playerId,
+                                approval,
+                            });
                         await this.requestsQueueCollection.lRem(
                             roomId,
                             playerId

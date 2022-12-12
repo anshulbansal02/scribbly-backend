@@ -25,10 +25,10 @@ async function bootstrap() {
     const app = new AppController({
         roomService,
         playerService,
+        eventChannel,
     });
 
-    const PORT = process.env.PORT || 4000;
-    app.listen(PORT);
+    app.listen(process.env.PORT || 4000);
 }
 
 bootstrap();
