@@ -14,19 +14,22 @@ class RoomController {
 
     eventExchange(eventChannel, pcm) {
         const roomChannel = eventChannel.subchannel("room");
-
-        roomChannel.on("player_joined", async (playerId, subchannels) => {
-            const roomId = subchannels[2];
-            await pcm.broadcastToRoom(roomId, "player_joined", playerId);
-        });
-
-        roomChannel.on("player_left", async (playerId, subchannels) => {
-            const roomId = subchannels[2];
-            await pcm.broadcastToRoom(roomId, "player_left", playerId);
-        });
+        const IRE = this.roomService.events;
 
         roomChannel.on(
-            "player_join_response",
+            IRE.PLAYER_JOIN_REQUEST,
+            async (playerId, subchannels) => {
+                const roomId = subchannels[2];
+
+                const adminId = await this.roomService.getAdminId(roomId);
+                const player = await this.playerService.get(playerId);
+
+                pcm.emitToPlayer(adminId, "player_join_request", player);
+            }
+        );
+
+        roomChannel.on(
+            IRE.PLAYER_JOIN_RESPONSE,
             ({ playerId, approval }, subchannels) => {
                 const roomId = subchannels[2];
                 pcm.emitToPlayer(playerId, "player_join_response", {
@@ -35,6 +38,16 @@ class RoomController {
                 });
             }
         );
+
+        roomChannel.on(IRE.PLAYER_JOINED, async (playerId, subchannels) => {
+            const roomId = subchannels[2];
+            await pcm.broadcastToRoom(roomId, "player_joined", playerId);
+        });
+
+        roomChannel.on(IRE.PLAYER_LEFT, async (playerId, subchannels) => {
+            const roomId = subchannels[2];
+            await pcm.broadcastToRoom(roomId, "player_left", playerId);
+        });
     }
 
     get routes() {

@@ -1,5 +1,7 @@
 import { randomInt } from "./../../utils/index.js";
 
+import RoomEvents from "./event.js";
+
 class RoomWorker {
     constructor(store, mainChannel) {
         this.roomCollection = store.collection("room");
@@ -13,16 +15,19 @@ class RoomWorker {
     }
 
     _subscribeToUpdates() {
-        this.roomChannel.on("admin_elect", async (adminId, subchannels) => {
-            const roomId = subchannels.at(-1);
+        this.roomChannel.on(
+            RoomEvents.ADMIN_ELECTED,
+            async (adminId, subchannels) => {
+                const roomId = subchannels.at(-1);
 
-            this.roomChannel.off(
-                await this.joinRequests._getRequestHandlerId(roomId)
-            );
-            await this.joinRequests._setIsProcessing(roomId, false);
+                this.roomChannel.off(
+                    await this.joinRequests._getRequestHandlerId(roomId)
+                );
+                await this.joinRequests._setIsProcessing(roomId, false);
 
-            this.joinRequests._processRequest(roomId);
-        });
+                this.joinRequests._processRequest(roomId);
+            }
+        );
     }
 
     joinRequests = {
@@ -76,7 +81,7 @@ class RoomWorker {
                     this._addPlayer(roomId, playerId);
                     await this.roomChannel
                         .subchannel(roomId)
-                        .emit("room_join_response", {
+                        .emit(RoomEvents.PLAYER_JOIN_RESPONSE, {
                             playerId,
                             approval: true,
                         });
@@ -90,17 +95,15 @@ class RoomWorker {
                     .subchannel(roomId)
                     .subchannel("admin");
 
-                await adminChannel.emit("player_join_request", playerId);
+                await adminChannel.emit(
+                    RoomEvents.PLAYER_JOIN_REQUEST,
+                    playerId
+                );
                 const handlerId = adminChannel.once(
-                    "player_join_response",
+                    RoomEvents.PLAYER_JOIN_RESPONSE,
                     async ({ approval }) => {
                         if (approval) this._addPlayer(roomId, playerId);
-                        await this.roomChannel
-                            .subchannel(roomId)
-                            .emit("room_join_response", {
-                                playerId,
-                                approval,
-                            });
+
                         await this.requestsQueueCollection.lRem(
                             roomId,
                             playerId
@@ -153,7 +156,7 @@ class RoomWorker {
         await this.roomCollection.setField(roomId, "adminId", newAdminId);
         await this.roomChannel
             .subchannel(roomId)
-            .emit("admin_elect", newAdminId);
+            .emit(RoomEvents.ADMIN_ELECTED, newAdminId);
     }
 
     async _addPlayer(roomId, playerId) {
@@ -166,7 +169,9 @@ class RoomWorker {
         await Promise.all([
             this.playerRelCollection.setField(playerId, "status", "joined"),
             this.roomCollection.setField(roomId, "playerIds", playerIds),
-            this.roomChannel.subchannel(roomId).emit("player_join", playerId),
+            this.roomChannel
+                .subchannel(roomId)
+                .emit(RoomEvents.PLAYER_JOINED, playerId),
         ]);
     }
 }

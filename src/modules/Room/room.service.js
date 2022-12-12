@@ -2,12 +2,16 @@ import Room from "./models/Room.js";
 
 import RoomWorker from "./room.worker.js";
 
+import RoomEvents from "./event.js";
+
 class RoomService {
     constructor(store, mainChannel) {
         if (RoomService._instance) {
             throw new Error("RoomService is already initialized");
         }
         RoomService._instance = this;
+
+        this.events = RoomEvents;
 
         this.playerChannel = mainChannel.subchannel("player");
         this.roomChannel = mainChannel.subchannel("room");
@@ -36,7 +40,7 @@ class RoomService {
             }),
 
             this.worker.joinRequests.init(room.id),
-            this.roomChannel.emit("create", room),
+            this.roomChannel.emit(RoomEvents.CREATED, room),
         ]);
 
         return room;
@@ -52,6 +56,10 @@ class RoomService {
 
     async getPlayerIds(roomId) {
         return await this.roomCollection.getField(roomId, "playerIds");
+    }
+
+    async getAdminId(roomId) {
+        return await this.roomCollection.getField(roomId, "adminId");
     }
 
     async getPlayerRoomId(playerId) {
@@ -71,6 +79,24 @@ class RoomService {
         } else {
             await this.worker.joinRequests.add(roomId, playerId);
         }
+    }
+
+    async approveJoinRequest(roomId, playerId) {
+        await this.roomChannel
+            .subchannel(roomId)
+            .emit(RoomEvents.PLAYER_JOIN_RESPONSE, {
+                playerId,
+                approval: true,
+            });
+    }
+
+    async rejectJoinRequest(roomId, playerId) {
+        await this.roomChannel
+            .subchannel(roomId)
+            .emit(RoomEvents.PLAYER_JOIN_RESPONSE, {
+                playerId,
+                approval: false,
+            });
     }
 
     async cancelJoinRequest(playerId) {
@@ -98,7 +124,9 @@ class RoomService {
             this.playerRelCollection.delRecord(playerId),
             this.roomCollection.setField(roomId, "playerIds", playerIds),
 
-            this.roomChannel.subchannel(roomId).emit("player_leave", playerId),
+            this.roomChannel
+                .subchannel(roomId)
+                .emit(RoomEvents.PLAYER_LEFT, playerId),
         ]);
     }
 }

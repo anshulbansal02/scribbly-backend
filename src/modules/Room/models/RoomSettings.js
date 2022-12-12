@@ -1,6 +1,6 @@
 class RoomSettings {
     constructor() {
-        this.isPrivate = false;
+        this.isPrivate = true;
         this.maxPlayers = 10;
     }
 }
