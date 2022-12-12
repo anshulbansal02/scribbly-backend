@@ -78,7 +78,7 @@ class Collection {
     }
 
     async exists(key) {
-        return await this.store.exists(this._transformKey(key));
+        return !!(await this.store.exists(this._transformKey(key)));
     }
 }
 

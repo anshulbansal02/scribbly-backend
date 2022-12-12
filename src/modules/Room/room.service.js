@@ -46,6 +46,10 @@ class RoomService {
         return await this.roomCollection.getRecord(roomId);
     }
 
+    async exists(roomId) {
+        return await this.roomCollection.exists(roomId);
+    }
+
     async getPlayerIds(roomId) {
         return await this.roomCollection.getField(roomId, "playerIds");
     }

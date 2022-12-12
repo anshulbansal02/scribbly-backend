@@ -4,19 +4,18 @@ import jwt from "jsonwebtoken";
 import controller from "./../helpers/controller.js";
 import httpStatus from "../helpers/httpStatus.js";
 
-import { clientRequired } from "../middlewares/middlewares.js";
-
 class PlayerController {
     constructor(services) {
         this.playerService = services.playerService;
         this.roomService = services.roomService;
-        this.playerClientMapper = services.ss;
+        this.pcm = services.pcm;
     }
 
     get routes() {
         const router = new Router();
 
-        router.use(clientRequired);
+        router.use(this.pcm.middleware.clientRequired);
+
         router.post("/create", this.createPlayer);
         router.patch("/reassociate", this.reassociatePlayer);
         router.get("/:playerId", this.getPlayer);
@@ -29,7 +28,7 @@ class PlayerController {
         const player = await this.playerService.create(username);
 
         const token = this.createAssociationToken();
-        this.playerClientMapper.associate(player.id, req.client.id);
+        this.pcm.associate(player.id, req.client.id);
 
         return httpStatus.Created({
             player,
@@ -45,7 +44,7 @@ class PlayerController {
             jwt.verify(associationToken, process.env.SECRET_KEY)
         ) {
             const newToken = this.createAssociationToken();
-            this.playerClientMapper.associate(player.id, req.client.id);
+            this.pcm.associate(player.id, req.client.id);
             return httpStatus.OK({ token: newToken });
         } else {
             return httpStatus.Unauthorized();
@@ -61,10 +60,13 @@ class PlayerController {
     });
 
     createAssociationToken(playerId, clientId) {
-        return jwt.sign({
-            playerId,
-            clientId,
-        });
+        return jwt.sign(
+            {
+                playerId,
+                clientId,
+            },
+            process.env.SECRET_KEY
+        );
     }
 }
 

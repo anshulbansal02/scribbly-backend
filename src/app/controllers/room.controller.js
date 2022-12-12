@@ -3,34 +3,33 @@ import { Router } from "express";
 import controller from "./../helpers/controller.js";
 import httpStatus from "../helpers/httpStatus.js";
 
-import { clientRequired, playerRequired } from "../middlewares/middlewares.js";
-
 class RoomController {
     constructor(services) {
         this.playerService = services.playerService;
         this.roomService = services.roomService;
+        this.pcm = services.pcm;
 
-        this.eventExchange(services.eventChannel, services.ss);
+        this.eventExchange(services.eventChannel, services.pcm);
     }
 
-    eventExchange(eventChannel, ss) {
+    eventExchange(eventChannel, pcm) {
         const roomChannel = eventChannel.subchannel("room");
 
         roomChannel.on("player_joined", async (playerId, subchannels) => {
             const roomId = subchannels[2];
-            await ss.broadcastToRoom(roomId, "player_joined", playerId);
+            await pcm.broadcastToRoom(roomId, "player_joined", playerId);
         });
 
         roomChannel.on("player_left", async (playerId, subchannels) => {
             const roomId = subchannels[2];
-            await ss.broadcastToRoom(roomId, "player_left", playerId);
+            await pcm.broadcastToRoom(roomId, "player_left", playerId);
         });
 
         roomChannel.on(
             "player_join_response",
             ({ playerId, approval }, subchannels) => {
                 const roomId = subchannels[2];
-                ss.emitToPlayer(playerId, "player_join_response", {
+                pcm.emitToPlayer(playerId, "player_join_response", {
                     roomId,
                     approval,
                 });
@@ -41,27 +40,28 @@ class RoomController {
     get routes() {
         const router = new Router();
 
-        router.use(clientRequired);
-        router.use(playerRequired);
+        router.use(this.pcm.middleware.clientRequired);
+        router.use(this.pcm.middleware.playerRequired);
 
         router.post("/create", this.createRoom);
         router.post("/join/:roomId", this.joinRoom);
         router.post("/leave", this.leaveRoom);
         router.post("/cancel-join", this.cancelJoin);
         router.get("/:roomId", this.getRoom);
+        router.get("/exists/:roomId", this.roomExists);
 
         return router;
     }
 
     createRoom = controller(async (req, res) => {
+        const playerId = req.playerId;
+
         const playerRoomId = await this.roomService.getPlayerRoomId(playerId);
         if (playerRoomId) {
             return httpStatus.BadRequest(
                 `Player already in room with Id ${playerRoomId}`
             );
         }
-
-        const playerId = req.playerId;
 
         const room = await this.roomService.create(playerId);
 
@@ -69,6 +69,8 @@ class RoomController {
     });
 
     joinRoom = controller(async (req, res) => {
+        const playerId = req.playerId;
+
         const playerRoomId = await this.roomService.getPlayerRoomId(playerId);
         if (playerRoomId) {
             return httpStatus.BadRequest(
@@ -76,8 +78,11 @@ class RoomController {
             );
         }
 
-        const playerId = req.playerId;
         const { roomId } = req.params;
+
+        if (!(await this.roomService.exists(roomId))) {
+            return httpStatus.BadRequest(`Room does not exist`);
+        }
 
         await this.roomService.joinRequest(roomId, playerId);
 
@@ -97,6 +102,12 @@ class RoomController {
         await this.roomService.leave(req.playerId);
 
         return httpStatus.OK();
+    });
+
+    roomExists = controller(async (req, res) => {
+        const { roomId } = req.params;
+        const exists = await this.roomService.exists(roomId);
+        return httpStatus.OK({ exists });
     });
 
     getRoom = controller(async (req, res) => {

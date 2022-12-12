@@ -1,3 +1,6 @@
+import controller from "./controller.js";
+import httpStatus from "./httpStatus.js";
+
 class PlayerClientMapper {
     constructor(roomService, socketServer) {
         this.playerToClientMap = new Map();
@@ -32,6 +35,31 @@ class PlayerClientMapper {
         );
         if (client) client.emit(event, data);
     }
+
+    middleware = {
+        clientRequired: controller((req, res, next) => {
+            const clientId = req.header("Client-Id");
+            if (!clientId) {
+                return httpStatus.BadRequest("Client-Id header missing");
+            }
+            req.client = this.socketServer.getClient(clientId);
+            if (!req.client) {
+                return httpStatus.BadRequest("Invalid Client-Id");
+            }
+            return next();
+        }),
+
+        playerRequired: controller((req, res, next) => {
+            const playerId = this.clientToPlayerMap.get(req.client?.id);
+
+            if (playerId) {
+                req.playerId = playerId;
+                return next();
+            } else {
+                return httpStatus.Unauthorized();
+            }
+        }),
+    };
 }
 
 export default PlayerClientMapper;
