@@ -30,7 +30,14 @@ class AppController {
 
         const expressApp = express();
         expressApp.use(this.routes);
-        this.httpServer.on("request", expressApp);
+
+        this.httpServer.on("request", (req, res) => {
+            // [Hack] let socket server handle the request on this path
+            // to prevent response conflict caused by express
+            if (req.url.startsWith(process.env.WEBSOCKET_CONNECTION_PATH))
+                return;
+            expressApp(req, res);
+        });
 
         this.socketServer.on("connection", (client) => {
             client.emit("client-id", client.id);

@@ -9,7 +9,10 @@ class Socket extends EventEmitter {
     constructor(httpServer, path) {
         super();
         this.#clients = new Map();
-        this.ioServer = new SocketIOServer(httpServer, { path });
+        this.ioServer = new SocketIOServer(httpServer, {
+            path,
+            cors: { origin: process.env.CORS_ORIGIN },
+        });
 
         this.ioServer.on("connection", (socket) => {
             const client = new Client(socket);
