@@ -25,9 +25,18 @@ class PlayerController {
 
     createPlayer = controller(async (req, res) => {
         const { username } = req.body;
+
+        const associatedPlayerId = this.pcm.getPlayer(req.client.id);
+        if (associatedPlayerId) {
+            return httpStatus.BadRequest({
+                playerId: associatedPlayerId,
+                error: "A player is already associated to this client",
+            });
+        }
+
         const player = await this.playerService.create(username);
 
-        const token = this.createAssociationToken();
+        const token = this.createAssociationToken(player.id, req.client.id);
         this.pcm.associate(player.id, req.client.id);
 
         return httpStatus.Created({
@@ -43,7 +52,10 @@ class PlayerController {
             associationToken &&
             jwt.verify(associationToken, process.env.SECRET_KEY)
         ) {
-            const newToken = this.createAssociationToken();
+            const newToken = this.createAssociationToken(
+                player.id,
+                req.client.id
+            );
             this.pcm.associate(player.id, req.client.id);
             return httpStatus.OK({ token: newToken });
         } else {
@@ -56,7 +68,9 @@ class PlayerController {
         const player = await this.playerService.get(playerId);
         return player
             ? httpStatus.OK(player)
-            : httpStatus.NotFound(`Player with Id ${playerId} does not exist`);
+            : httpStatus.NotFound(
+                  `Player with Id '${playerId}' does not exist`
+              );
     });
 
     createAssociationToken(playerId, clientId) {

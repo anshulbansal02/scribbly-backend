@@ -50,14 +50,12 @@ class PlayerClientMapper {
         }),
 
         playerRequired: controller((req, res, next) => {
-            const playerId = this.clientToPlayerMap.get(req.client?.id);
-
-            if (playerId) {
-                req.playerId = playerId;
-                return next();
-            } else {
-                return httpStatus.Unauthorized();
-            }
+            req.playerId = this.clientToPlayerMap.get(req.client?.id);
+            if (!req.playerId)
+                return httpStatus.Unauthorized(
+                    "Player not found. Client unauthorized"
+                );
+            next();
         }),
     };
 }
