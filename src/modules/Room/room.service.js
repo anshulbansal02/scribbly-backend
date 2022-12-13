@@ -2,7 +2,7 @@ import Room from "./models/Room.js";
 
 import RoomWorker from "./room.worker.js";
 
-import RoomEvents from "./event.js";
+import RoomEvents from "./events.js";
 
 class RoomService {
     constructor(store, mainChannel) {
