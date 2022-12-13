@@ -48,17 +48,19 @@ class PlayerController {
     reassociatePlayer = controller(async (req, res) => {
         const { associationToken } = req.body;
 
-        if (
-            associationToken &&
-            jwt.verify(associationToken, process.env.SECRET_KEY)
-        ) {
+        try {
+            const { playerId } = jwt.verify(
+                associationToken,
+                process.env.SECRET_KEY
+            );
+
             const newToken = this.createAssociationToken(
-                player.id,
+                playerId,
                 req.client.id
             );
-            this.pcm.associate(player.id, req.client.id);
+            this.pcm.associate(playerId, req.client.id);
             return httpStatus.OK({ token: newToken });
-        } else {
+        } catch (err) {
             return httpStatus.Unauthorized();
         }
     });
