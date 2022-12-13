@@ -53,27 +53,37 @@ class RoomController {
     get routes() {
         const router = new Router();
 
-        router.use(this.pcm.middleware.clientRequired);
-        router.use(this.pcm.middleware.playerRequired);
+        const { clientRequired, playerRequired } = this.pcm.middleware;
 
-        router.post("/create", this.createRoom);
-        router.post("/join/:roomId", this.joinRoom);
-        router.post("/leave", this.leaveRoom);
-        router.post("/cancel-join", this.cancelJoin);
-        router.get("/:roomId", this.getRoom);
+        router.post("/create", clientRequired, playerRequired, this.createRoom);
+        router.post(
+            "/join/:roomId",
+            clientRequired,
+            playerRequired,
+            this.joinRoom
+        );
+        router.post("/leave", clientRequired, playerRequired, this.leaveRoom);
+        router.post(
+            "/cancel-join",
+            clientRequired,
+            playerRequired,
+            this.cancelJoin
+        );
+        router.get("/:roomId", clientRequired, playerRequired, this.getRoom);
         router.get("/exists/:roomId", this.roomExists);
 
         return router;
     }
 
     createRoom = controller(async (req, res) => {
-        const playerId = req.playerId;
+        const { playerId } = req;
 
         const playerRoomId = await this.roomService.getPlayerRoomId(playerId);
         if (playerRoomId) {
-            return httpStatus.BadRequest(
-                `Player already in room with Id ${playerRoomId}`
-            );
+            return httpStatus.BadRequest({
+                roomId: playerRoomId,
+                error: "Player already in a room",
+            });
         }
 
         const room = await this.roomService.create(playerId);
@@ -82,17 +92,17 @@ class RoomController {
     });
 
     joinRoom = controller(async (req, res) => {
-        const playerId = req.playerId;
+        const { playerId } = req;
 
         const playerRoomId = await this.roomService.getPlayerRoomId(playerId);
         if (playerRoomId) {
-            return httpStatus.BadRequest(
-                `Player already in room with Id ${playerRoomId}`
-            );
+            return httpStatus.BadRequest({
+                roomId: playerRoomId,
+                error: "Player already in a room",
+            });
         }
 
         const { roomId } = req.params;
-
         if (!(await this.roomService.exists(roomId))) {
             return httpStatus.BadRequest(`Room does not exist`);
         }
@@ -120,7 +130,7 @@ class RoomController {
     roomExists = controller(async (req, res) => {
         const { roomId } = req.params;
         const exists = await this.roomService.exists(roomId);
-        return httpStatus.OK({ exists });
+        return httpStatus.OK(exists);
     });
 
     getRoom = controller(async (req, res) => {
