@@ -37,6 +37,13 @@ class PlayerClientMapper {
     }
 
     middleware = {
+        // Socket middlewares
+        attachPlayerId: (client, event, data, next) => {
+            client.playerId = this.clientToPlayerMap.get(client.id);
+            if (client.playerId) next();
+        },
+
+        // REST middlewares
         clientRequired: controller((req, res, next) => {
             const clientId = req.header("Client-Id");
             if (!clientId) {
