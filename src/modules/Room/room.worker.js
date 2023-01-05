@@ -1,6 +1,6 @@
 import { randomInt } from "./../../utils/index.js";
 
-import RoomEvents from "./event.js";
+import RoomEvents from "./events.js";
 
 class RoomWorker {
     constructor(store, mainChannel) {

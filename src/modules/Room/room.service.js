@@ -101,7 +101,7 @@ class RoomService {
 
     async cancelJoinRequest(playerId) {
         const playerRoom = await this.playerRelCollection.getRecord(playerId);
-        if (playerRoom.status === "requested")
+        if (playerRoom?.status === "requested")
             await this.worker.joinRequests.remove(playerRoom.roomId, playerId);
     }
 
